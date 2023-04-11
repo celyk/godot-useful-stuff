@@ -1,6 +1,6 @@
 class_name ShaderTextEdit extends TextEdit
 
-## A TextEdit box for editing a shader at runtime.
+## A text box for editing a shader at runtime.
 
 ## The shader which you want to edit.
 @export var target_shader : Shader
