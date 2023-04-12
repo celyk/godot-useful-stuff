@@ -1,19 +1,20 @@
-class_name GLSLRenderTool extends RefCounted
+class_name ShaderRenderTool extends RefCounted
 
 ## Helper tool for rendering plain GLSL shaders to a texture via [RenderingDevice].
 ##
 ## Blah blah blah blah.
 ## [br]
-## [br]Below is an example of how GLSLRenderTool may be used.
+## [br]Below is an example of how ShaderRenderTool may be used.
 ## [codeblock]
-## var grt = GLSLRenderTool.new()
-## grt.shader = grt.compile_shader("haha")
-## var tex = grt.render()
+##	var grt = ShaderRenderTool.new()
+##
+##	grt.set_shader(grt.compile_shader())
+##
+##	var img = grt.render()
 ## [/codeblock]
 
 
 # PUBLIC
-
 
 func compile_shader(source_fragment : String = _default_source_fragment, source_vertex : String = _default_source_vertex) -> RID:
 	var src := RDShaderSource.new()
@@ -193,6 +194,8 @@ func _notification(what):
 		_RD.free_rid(_p_vertex_array)
 		_RD.free_rid(_p_index_array)
 		_RD.free_rid(_p_shader)
+		
+		_RD.free()
 
 # DATA
 #var _vertex_buffer := PackedFloat32Array([-1,-1,0, 0,0, 1,-1,0, 1,0, 1,1,0, 1,1, -1,1,0, 0,1])
@@ -203,7 +206,7 @@ var _vertex_buffer := PackedFloat32Array([
 		0,1,.5, 1,1, 
 		-1,1,1, .5,.5,
 		1,1,1, .5,.5, 
-		0,0,0, .5,.5
+		0,0,0, 0,0
 		])
 var _index_buffer := PackedInt32Array([0,1,2, 3,4,5])
 
