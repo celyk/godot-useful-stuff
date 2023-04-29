@@ -20,19 +20,6 @@ class_name Feedback extends SubViewport
 var _editor_viewport : Node
 var _parent_viewport : Viewport
 
-func _is_editor_viewport(vp : Viewport) -> bool:
-	return Engine.is_editor_hint() && vp == get_tree().get_root()
-
-
-# RENDERING
-
-var _p_viewport : RID
-var _p_scenario : RID
-var _p_camera : RID
-var _p_base : RID
-var _p_instance : RID
-var _material : Material
-
 func _init():
 	render_target_update_mode = SubViewport.UPDATE_ALWAYS
 
@@ -51,15 +38,6 @@ func _notification(what):
 		NOTIFICATION_PREDELETE:
 			_cleanup_blit()
 
-func _update() -> void:
-	if not _is_editor_viewport(_parent_viewport):
-		size = _parent_viewport.size
-	else:
-		size = _editor_viewport.size
-	
-	_set_blit_crop_transform()
-	
-	_material.set_shader_parameter("tex", _parent_viewport.get_texture())
 
 func _find_editor_viewport(node : Node) -> void:
 	if node.get_class() == "CanvasItemEditorViewport":
@@ -75,6 +53,28 @@ func _find_editor_viewport(node : Node) -> void:
 		_editor_viewport = node
 		_update()
 
+func _update() -> void:
+	if not _is_editor_viewport(_parent_viewport):
+		size = _parent_viewport.size
+	else:
+		size = _editor_viewport.size
+	
+	_set_blit_crop_transform()
+	
+	_material.set_shader_parameter("tex", _parent_viewport.get_texture())
+
+func _is_editor_viewport(vp : Viewport) -> bool:
+	return Engine.is_editor_hint() && vp == get_tree().get_root()
+
+
+# RENDERING
+
+var _p_viewport : RID
+var _p_scenario : RID
+var _p_camera : RID
+var _p_base : RID
+var _p_instance : RID
+var _material : Material
 
 func _init_blit() -> void:
 	_p_scenario = RenderingServer.scenario_create()
@@ -125,18 +125,19 @@ func _set_blit_crop_transform() -> void: # bad name
 		transform = transform.scaled(Vector3(
 				_editor_viewport.size.x * 1.0/_parent_viewport.size.x,
 				_editor_viewport.size.y * 1.0/_parent_viewport.size.y,1))
-
+		
 		transform = transform.translated(Vector3(-1,-1,0))
-
+		
 		var pos := Vector3(_editor_viewport.global_position.x, _editor_viewport.global_position.y, 0)
 		pos /= Vector3(_parent_viewport.size.x, _parent_viewport.size.y, 1)
-
+		
 		transform = transform.translated(pos)
 		transform = transform.translated(pos)
-
+		
 		transform = transform.affine_inverse()
-#
+	
 	RenderingServer.instance_set_transform(_p_instance, transform)
+
 
 # DATA
 
