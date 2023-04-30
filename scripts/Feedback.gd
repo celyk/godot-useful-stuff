@@ -15,7 +15,8 @@ class_name Feedback extends SubViewport
 # TODO:
 # update on resize
 # cleanup signals
-# simplify transformations
+# simplify rendering
+# cache _material
 
 var _editor_viewport : Node
 var _parent_viewport : Viewport
@@ -40,6 +41,7 @@ func _notification(what):
 
 
 func _find_editor_viewport(node : Node) -> void:
+	print(node)
 	if node.get_class() == "CanvasItemEditorViewport":
 		print("2d time")
 		_parent_viewport = get_tree().get_root()
@@ -105,38 +107,28 @@ func _init_blit() -> void:
 	_material.shader.code = _blit_shader_code
 	
 	RenderingServer.mesh_surface_set_material(_p_base, 0, _material.get_rid())
-	
+
 func _cleanup_blit() -> void:
 	RenderingServer.free_rid(_p_instance)
 	RenderingServer.free_rid(_p_base)
 	RenderingServer.free_rid(_p_camera)
 	RenderingServer.free_rid(_p_scenario)
 
-
-func _rect_to_transform() -> Transform2D:
-	return Transform2D()
+# texture space to world space transform
+func _rect_to_transform(rect : Rect2) -> Transform2D:
+	return Transform2D(Vector2(rect.size.x,0), Vector2(0,rect.size.y), rect.position)
 
 func _set_blit_crop_transform() -> void: # bad name
-	var transform := Transform3D()
+	var transform := Transform2D()
 	
 	if _is_editor_viewport(_parent_viewport):
-		print(_editor_viewport.global_position,_editor_viewport.size)
-		transform = transform.translated(-Vector3(-1,-1,0))
-		transform = transform.scaled(Vector3(
-				_editor_viewport.size.x * 1.0/_parent_viewport.size.x,
-				_editor_viewport.size.y * 1.0/_parent_viewport.size.y,1))
-		
-		transform = transform.translated(Vector3(-1,-1,0))
-		
-		var pos := Vector3(_editor_viewport.global_position.x, _editor_viewport.global_position.y, 0)
-		pos /= Vector3(_parent_viewport.size.x, _parent_viewport.size.y, 1)
-		
-		transform = transform.translated(pos)
-		transform = transform.translated(pos)
-		
+		transform = transform.translated(Vector2(1,1)).scaled(Vector2(0.5,0.5))
+		transform = _rect_to_transform( _editor_viewport.get_global_rect() ) * transform
+		transform = _editor_viewport.get_viewport_transform().scaled(Vector2(1,1)/Vector2(_parent_viewport.size)) * transform
+		transform = transform.translated(-Vector2(0.5,0.5)).scaled(Vector2(2,2))
 		transform = transform.affine_inverse()
 	
-	RenderingServer.instance_set_transform(_p_instance, transform)
+	RenderingServer.instance_set_transform(_p_instance, Transform3D(transform))
 
 
 # DATA
@@ -150,12 +142,11 @@ const _blit_shader_code = "
 		
 		void vertex(){
 			POSITION = MODEL_MATRIX * vec4(VERTEX,1);
+			UV.y = 1.0 - UV.y;
 		}
 		
 		void fragment(){
-			vec2 uv = UV;
-			uv.y = 1.0 - uv.y;
-			vec4 samp = textureLod(tex,uv,0.0);
+			vec4 samp = textureLod(tex, UV, 0.0);
 			ALBEDO = samp.rgb;
 			ALPHA = samp.a;
 			//ALBEDO = vec3(1,.3,.4);
