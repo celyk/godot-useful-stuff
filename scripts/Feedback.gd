@@ -69,7 +69,11 @@ var _p_instance : RID
 var _material : Material
 
 func _init_blit() -> void:
-	if _p_viewport.is_valid(): return
+	if _p_viewport.is_valid():
+		# fixes a bug when switching scene
+		RenderingServer.viewport_set_scenario(_p_viewport, _p_scenario)
+		RenderingServer.viewport_attach_camera(_p_viewport, _p_camera)
+		return
 	
 	_p_scenario = RenderingServer.scenario_create()
 	_p_viewport = get_viewport_rid()
