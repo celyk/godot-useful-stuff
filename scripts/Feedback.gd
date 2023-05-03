@@ -6,8 +6,6 @@ class_name Feedback extends SubViewport
 ## Feedback is a [Viewport] that simply copies it's parent viewport, enabling safe access to the parent viewports previous frame.
 ## [br]
 ## [br]It automatically takes the size of the parent viewport.
-## [br]
-## [br]This node is still in development.
 
 
 # PRIVATE
@@ -26,35 +24,31 @@ func _init():
 func _notification(what):
 	match what:
 		NOTIFICATION_POST_ENTER_TREE: # the node entered the tree and is ready
-			_init_blit()			
+			_init_blit()
 			
 			_safe_disconnect(_parent_viewport, "size_changed", _handle_resize)
 			
+			_parent_viewport = _find_parent_viewport()
+			_handle_resize()
+			
 			
 			# editor shenanigans
-			if Engine.is_editor_hint() && has_method("_do_handle_editor") && _do_handle_editor(): 
+			if Engine.is_editor_hint() && has_method("_do_handle_editor") && call("_do_handle_editor"): 
 				return
 			
-			
-			_parent_viewport = _find_parent_viewport()
-			_update()
 			
 			_safe_connect(_parent_viewport, "size_changed", _handle_resize)
 		
 		NOTIFICATION_PREDELETE:
-			_safe_disconnect(_parent_viewport, "size_changed", _handle_resize)
 			_cleanup_blit()
+			_safe_disconnect(_parent_viewport, "size_changed", _handle_resize)
 
 func _find_parent_viewport():
 	return get_parent().get_viewport() # get_viewport() on a viewport returns itself
 
-func _update() -> void:
+func _handle_resize():
 	size = _parent_viewport.size
 	_material.set_shader_parameter("tex", _parent_viewport.get_texture())
-
-func _handle_resize():
-	print(_parent_viewport, "resized", _parent_viewport.size)
-	_update()
 
 func _safe_connect(obj : Object, sig: StringName, callable : Callable, flags : int = 0) -> void:
 	if obj && !obj.is_connected(sig, callable): obj.connect(sig, callable, flags)
@@ -137,28 +131,27 @@ const _blit_shader_code = "
 
 var _editor_viewport : Control
 func _find_editor_viewport(node : Node) -> void:
-	print(node)
 	if node.get_class() == "CanvasItemEditorViewport":
-		print("2d time")
 		_safe_disconnect(_editor_viewport, "resized", _handle_2d_editor_resize)
-		
+
 		_parent_viewport = get_tree().get_root()
 		_editor_viewport = node
-		#_update()
+		
 		_handle_2d_editor_resize()
-		
+
 		_safe_connect( _editor_viewport, "resized", _handle_2d_editor_resize)
-		
+
 	var parent = node.get_parent()
 	if parent && parent.get_class() == "Node3DEditorViewport":
-		print("not 2d time")
-		_safe_disconnect(_editor_viewport, "resized", _handle_resize)
+		_safe_disconnect(_editor_viewport, "resized", _handle_2d_editor_resize)
+
+		_parent_viewport = get_tree().get_root()
+		_editor_viewport = parent
 		
-		_parent_viewport = parent.get_child(0).get_child(0)
-		_editor_viewport = node
-		_update()
-		
-		_safe_connect( _editor_viewport, "resized", _handle_resize)
+		_handle_2d_editor_resize()
+
+		_safe_connect( _editor_viewport, "resized", _handle_2d_editor_resize)
+
 
 # texture space to world space transform
 func _rect_to_transform(rect : Rect2) -> Transform2D:
@@ -168,34 +161,28 @@ func _handle_2d_editor_resize():
 	print(_editor_viewport, "resized", _editor_viewport.size)
 	size = _editor_viewport.size
 	_material.set_shader_parameter("tex", _parent_viewport.get_texture())
-	
+
 	var transform := Transform2D()
 	transform = transform.translated(Vector2(1,1)).scaled(Vector2(0.5,0.5))
 	transform = _rect_to_transform( _editor_viewport.get_global_rect() ) * transform
 	transform = _editor_viewport.get_viewport_transform().scaled(Vector2(1,1)/Vector2(_parent_viewport.size)) * transform
 	transform = transform.translated(-Vector2(0.5,0.5)).scaled(Vector2(2,2))
 	transform = transform.affine_inverse()
-	
+
 	RenderingServer.instance_set_transform(_p_instance, Transform3D(transform))
 
 func _do_handle_editor() -> bool:
-	print("Hi")
 	# The issue is that our scene root is not used for rendering when inside the editor
 	# We must find the actual viewport used
 	_safe_disconnect( get_tree().get_root(), "gui_focus_changed", _find_editor_viewport)
-	
-	var new_parent_viewport = _find_parent_viewport()
-	print(_find_parent_viewport())
-	print(get_tree().get_edited_scene_root())
-	if new_parent_viewport != get_tree().get_edited_scene_root().get_parent():
+
+	if _parent_viewport != get_tree().get_edited_scene_root().get_parent():
 		return false
-	
-	print("oh")
+
 	_safe_connect( get_tree().get_root(), "gui_focus_changed", _find_editor_viewport)
 	
-	print("handle editor")
-	
-	return false
+	return true
 
 func _exit_tree():
 	_safe_disconnect( get_tree().get_root(), "gui_focus_changed", _find_editor_viewport)
+	_safe_disconnect(_editor_viewport, "resized", _handle_2d_editor_resize)
