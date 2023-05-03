@@ -1,11 +1,13 @@
 @tool
 class_name Feedback extends SubViewport
 
-## A node for creating texture feedback loops.
+## [br]A node for creating texture feedback loops.
+## [br][color=purple]Made by celyk[/color]
 ##
 ## Feedback is a [Viewport] that simply copies it's parent viewport, enabling safe access to the parent viewports previous frame.
 ## [br]
 ## [br]It automatically takes the size of the parent viewport.
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 
 # PRIVATE
