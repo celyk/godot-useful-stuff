@@ -158,7 +158,6 @@ func _rect_to_transform(rect : Rect2) -> Transform2D:
 	return Transform2D(Vector2(rect.size.x,0), Vector2(0,rect.size.y), rect.position)
 
 func _handle_2d_editor_resize():
-	print(_editor_viewport, "resized", _editor_viewport.size)
 	size = _editor_viewport.size
 	_material.set_shader_parameter("tex", _parent_viewport.get_texture())
 
