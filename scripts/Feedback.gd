@@ -7,6 +7,7 @@ class_name Feedback extends SubViewport
 ## Feedback is a [Viewport] that simply copies it's parent viewport, enabling safe access to the parent viewports previous frame.
 ## [br]
 ## [br]It automatically takes the size of the parent viewport.
+##
 ## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 
