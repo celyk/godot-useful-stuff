@@ -1,11 +1,13 @@
 @tool
 class_name HelloTriangleEffect extends RenderingEffect
 
+## This script serves as an example for rendering directly into the scene via the RenderingEffect API
+
+
 # TODO
 # Find a way to get internal framebuffer
-# Add documentation
-# XR support
 # Fix hardcoded _framebuffer_format
+# XR support
 
 
 # PUBLIC
@@ -56,7 +58,7 @@ func _initialize_render():
 	
 	_framebuffer_format = _RD.framebuffer_format_create( attachment_formats )
 	
-	
+	# Compile using the default shader source defined at the end of this file
 	_p_shader = _compile_shader()
 	
 	# Create vertex buffer
@@ -107,11 +109,13 @@ func _initialize_render():
 
 var _prev_size : Vector2i
 func _render_callback(_effect_callback_type : int, render_data : RenderData):
+	# Exit if we are not at the correct time
 	if _effect_callback_type != effect_callback_type: return
 	
 	var render_scene_buffers : RenderSceneBuffersRD = render_data.get_render_scene_buffers()
 	var render_scene_data : RenderSceneData = render_data.get_render_scene_data()
 	
+	# Exit if, for whatever reason, we cannot aquire buffers
 	if not render_scene_buffers: return
 	
 	var view_count : int = render_scene_buffers.get_view_count()
@@ -133,7 +137,6 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	
 	# Loop through views just in case we're doing stereo rendering. No extra cost if this is mono.
 	for view in range(view_count):
-		
 		var draw_list : int = _RD.draw_list_begin(
 			_p_framebuffer, 
 			_RD.INITIAL_ACTION_CONTINUE,
@@ -146,7 +149,8 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 		_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
 		
 		# Setup model view projection
-		var MVP : Projection = Projection.create_depth_correction(true) * render_scene_data.get_view_projection(view)
+		var flip_y := true # true here implies that we are not using the OpenGL renderer. Oddly enough, projection matrices are provided in OpenGL style
+		var MVP : Projection = Projection.create_depth_correction(flip_y) * render_scene_data.get_view_projection(view)
 		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
 		
 		# Send data to our shader
@@ -182,9 +186,9 @@ func _notification(what):
 			_RD.free_rid(_p_framebuffer)
 
 var _vertex_buffer := PackedFloat32Array([
-		-0.3,-0.5,0.0, 1,0,0,1,
-		0.3,-0.5,0.0, 0,1,0,1,
-		0,0.7,0.0, 0,0,1,1,
+		-0.5,-0.288675,0, 1,0,0,1,
+		0.5,-0.288675,0, 0,1,0,1,
+		0,0.57735,0, 0,0,1,1,
 		])
 
 const _default_source_vertex = "
