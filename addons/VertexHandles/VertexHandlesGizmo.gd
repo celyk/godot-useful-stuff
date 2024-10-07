@@ -2,7 +2,7 @@
 extends EditorNode3DGizmoPlugin
 
 func _init():
-	create_material("main", Color.hex(0xff5555ff), false, true)
+	create_material("main", Color(1,1,1), false, true, true)
 	create_handle_material("handles",false)
 
 const MyCustomNode3D = preload("VertexHandles.gd")
@@ -64,18 +64,7 @@ func _redraw(gizmo):
 	gizmo.clear()
 	
 	var node3d : Node3D = gizmo.get_node_3d()
-	
-	var handles := PackedVector3Array()
-	
-	for i in range(0,node3d.point_arrays.size()):
-		var point_array = node3d.point_arrays[i]
 		
-		for j in range(0,point_array.size()):
-			handles.push_back( point_array[j] )
-			#print(arrays[Mesh.ARRAY_VERTEX][j])
-	
-	gizmo.add_handles(handles, get_material("handles", gizmo), [], false)
-	
 	if node3d.wireframe:
 		var lines = PackedVector3Array()
 		
@@ -88,4 +77,19 @@ func _redraw(gizmo):
 					lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,j)) )
 					lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,(j+1)%3 )) )
 		
-		gizmo.add_lines(lines, get_material("main", gizmo), false)
+		gizmo.add_lines(lines, get_material("main", gizmo), false, node3d.wireframe_color)
+	
+	
+	var handles := PackedVector3Array()
+	
+	for i in range(0,node3d.point_arrays.size()):
+		var point_array = node3d.point_arrays[i]
+		
+		for j in range(0,point_array.size()):
+			handles.push_back( point_array[j] )
+			#print(arrays[Mesh.ARRAY_VERTEX][j])
+	
+	gizmo.add_handles(handles, get_material("handles", gizmo), [], false)
+	
+	
+	#gizmo.set_hidden(not gizmo.is_subgizmo_selected(0))

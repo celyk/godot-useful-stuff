@@ -10,6 +10,10 @@ class_name VertexHandles extends Node3D
 	set(value):
 		wireframe = value
 		_request_redraw.emit()
+@export var wireframe_color := Color.CORNFLOWER_BLUE : 
+	set(value):
+		wireframe_color = value
+		_request_redraw.emit()
 
 # Array of point arrays
 @export var point_arrays := [] : set = _set_points
