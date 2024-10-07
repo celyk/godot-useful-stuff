@@ -76,7 +76,7 @@ func _redraw(gizmo):
 	
 	gizmo.add_handles(handles, get_material("handles", gizmo), [], false)
 	
-	if node3d.render_wireframe:
+	if node3d.wireframe:
 		var lines = PackedVector3Array()
 		
 		var mdt := MeshDataTool.new()
