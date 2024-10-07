@@ -10,6 +10,7 @@ class_name VertexHandles extends Node3D
 # - Render wireframe
 # - Add options
 # - Refresh mesh in _set_points
+# - Support multiple surfaces
 # - Make sure things are commiting and can unddo/redo 
 # - Fix handle rendering bug
 
@@ -32,6 +33,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_mesh()
+	#var type : Mesh.PrimitiveType = _get_primitive_type(mesh)
 
 func _update_mesh():
 	if is_node_ready() and not points.is_empty():
@@ -42,6 +44,8 @@ func _update_mesh():
 			var arrays = mesh.surface_get_arrays(i)
 			surface_arrays.push_back(arrays)
 		
+		var type : Mesh.PrimitiveType = _get_primitive_type(mesh)
+		
 		mesh.clear_surfaces()
 		
 		for i in range(0,surface_arrays.size()):
@@ -49,10 +53,10 @@ func _update_mesh():
 			
 			surface_arrays[i][Mesh.ARRAY_VERTEX] = PackedVector3Array( points[i] )
 			
-			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays[i])
+			mesh.add_surface_from_arrays(type, surface_arrays[i])
 
 func _set_points(value):
-	print(value)
+	#print(value)
 	points = value
 	print("settingsetting")
 
@@ -63,9 +67,15 @@ func _to_array_mesh(_mesh:Mesh) -> ArrayMesh:
 		var arrays = _mesh.surface_get_arrays(i)
 		surface_arrays.push_back(arrays)
 	
+	var type : Mesh.PrimitiveType = _get_primitive_type(_mesh)
+	#print("type: ", str(type) )
+	
 	_mesh = ArrayMesh.new()
 	
 	for i in range(0,surface_arrays.size()):
-		_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays[i])
+		_mesh.add_surface_from_arrays(type, surface_arrays[i])
 	
 	return _mesh
+
+func _get_primitive_type(_mesh:Mesh, id:=0) -> Mesh.PrimitiveType:
+	return RenderingServer.mesh_get_surface(_mesh.get_rid(), 0)["primitive"]
