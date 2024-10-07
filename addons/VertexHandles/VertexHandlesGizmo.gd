@@ -15,6 +15,7 @@ func _create_gizmo(for_node_3d: Node3D) -> EditorNode3DGizmo:
 	
 	var gizmo = EditorNode3DGizmo.new()
 	
+	# Allows the node3d associated with this gizmo to request redraw
 	for_node_3d._request_redraw.connect(_redraw.bind(gizmo))
 	
 	return gizmo
@@ -25,36 +26,20 @@ func _get_gizmo_name():
 
 func _get_handle_name(gizmo,id,secondary):
 	return str(id)
-	match id:
-		0:
-			return "Radius"
-		1:
-			return "Width"
 
 func _get_handle_value(gizmo,id,secondary):
 	var node3d : Node3D = gizmo.get_node_3d()
-	
 	return node3d.point_arrays[0][id]
-	
-	match id:
-		0:
-			return node3d.radius
-		1:
-			return node3d.width
-	
+
 func _set_handle(gizmo,id,secondary,camera,point):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
-	var gt : Transform3D = node3d.get_global_transform()
-	var gi : Transform3D = gt.affine_inverse()
-	
+	# Construct the view ray in world space
 	var ray_from : Vector3 = camera.project_ray_origin(point)
 	var ray_dir : Vector3 = camera.project_ray_normal(point)
 	
-	ray_from = node3d.global_transform.affine_inverse() * ray_from
-	ray_dir = node3d.global_transform.affine_inverse().basis * ray_dir
-	
-	var plane = Plane(camera.get_camera_transform().basis[2],node3d.point_arrays[0][id])
+	# Intersect the ray with a camera facing plane
+	var plane = Plane(camera.get_camera_transform().basis[2], node3d.global_transform * node3d.point_arrays[0][id])
 	var p = Geometry3D.segment_intersects_convex(ray_from,ray_from+ray_dir*16384,[plane])
 	
 	if p.is_empty():
@@ -62,37 +47,24 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	
 	p = p[0]
 	
-	var d = p.distance_to(node3d.global_position)
+	# Transform the intersection point from world space to local node space
+	p = node3d.global_transform.affine_inverse() * p
 	
 	node3d.point_arrays[0][id] = p
-	#node3d.set_indexed("point_arrays[0]["+str(id)+"]", p)
 	node3d.point_arrays = node3d.point_arrays # Force setter call
 	
 	_redraw(gizmo)
 
-#var undo_redo = UndoRedo.new()
-
 func _commit_handle(gizmo,id,secondary,restore,cancel):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
-	#print("Committing ", restore)
-	
-	#EditorPlugin.get_undo_redo().create_action("Move handle " + str(id))
-	#undo_redo.add_do_method(func: node3d.point_arrays[0][id] = get_han)
-	#undo_redo.add_undo_method(func(): node3d.point_arrays[0][id] = restore)
-	#undo_redo.add_undo_property(node3d, "point_arrays/0/"+str(id), Vector3(0,0,0))
-	#EditorUndoRedoManager.commit_action(true)
+	# TODO - use EditorUndoRedoManager
 
 func _redraw(gizmo):
 	gizmo.clear()
 	
 	var node3d : Node3D = gizmo.get_node_3d()
-	#var mesh : Mesh = node3d.mesh
 	
-	#print(mesh)
-	
-	#print("redraw")
-
 	var handles := PackedVector3Array()
 	
 	for i in range(0,node3d.point_arrays.size()):

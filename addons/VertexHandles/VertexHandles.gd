@@ -21,6 +21,7 @@ signal _request_redraw
 # - Support multiple surfaces
 # - Make sure things are commiting and can undo/redo 
 # - Fix handle rendering bug
+# - Sort handles from back to front
 
 func _ready() -> void:
 	assert(get_parent() is MeshInstance3D)
