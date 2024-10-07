@@ -2,7 +2,7 @@
 extends EditorNode3DGizmoPlugin
 
 func _init():
-	create_material("main", Color(0,1,1),false,true)
+	create_material("main", Color.hex(0xff5555ff), false, true)
 	create_handle_material("handles",false)
 
 const MyCustomNode3D = preload("VertexHandles.gd")
@@ -75,12 +75,7 @@ func _redraw(gizmo):
 	#print(mesh)
 	
 	#print("redraw")
-	
-	var lines = PackedVector3Array()
 
-	lines.push_back(Vector3(1, 1, -1))
-	lines.push_back(Vector3(0, 0, 0))
-	
 	var handles := PackedVector3Array()
 	
 	for i in range(0,node3d.points.size()):
@@ -90,7 +85,18 @@ func _redraw(gizmo):
 			handles.push_back( point_array[j] )
 			#print(arrays[Mesh.ARRAY_VERTEX][j])
 	
-	#gizmo.add_lines(lines, get_material("main", gizmo), false)
+	gizmo.add_handles(handles, get_material("handles", gizmo), [], false)
 	
-	var billboard := false
-	gizmo.add_handles(handles, get_material("handles", gizmo), [], billboard)
+	var lines = PackedVector3Array()
+	
+	var mdt := MeshDataTool.new()
+	
+	for surface_id in range(0,(node3d.mesh as Mesh).get_surface_count()):
+		mdt.create_from_surface(node3d.mesh, surface_id)
+		for face_id in range(0,mdt.get_face_count()):
+			for j in range(0,3):
+				lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,j)) )
+				lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,(j+1)%3 )) )
+	
+	gizmo.add_lines(lines, get_material("main", gizmo), false)
+	
