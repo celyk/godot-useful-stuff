@@ -55,7 +55,7 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	var d = p.distance_to(node3d.global_position)
 	
 	node3d.point_arrays[0][id] = p
-	node3d.point_arrays = node3d.point_arrays
+	node3d.point_arrays = node3d.point_arrays # Force setter call
 	
 	_redraw(gizmo)
 

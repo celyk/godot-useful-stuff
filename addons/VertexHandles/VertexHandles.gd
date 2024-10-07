@@ -55,6 +55,7 @@ func _update_mesh():
 			mesh.add_surface_from_arrays(type, surface_arrays[i])
 
 func _set_points(value):
+	point_arrays = value
 	_update_mesh()
 
 func _to_array_mesh(_mesh:Mesh) -> ArrayMesh:
