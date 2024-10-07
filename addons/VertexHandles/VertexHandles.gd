@@ -37,6 +37,15 @@ signal _request_redraw
 func _ready() -> void:
 	assert(get_parent() is MeshInstance3D)
 	
+	_refresh_point_arrays()
+	
+	# Refresh the points just in case we are dealing with a new mesh
+	EditorInterface.get_selection().selection_changed.connect(_refresh_point_arrays)
+
+func _refresh_point_arrays():
+	if not self in EditorInterface.get_selection().get_selected_nodes():
+		return
+	
 	get_parent().mesh = _to_array_mesh(get_parent().mesh)
 	mesh = get_parent().mesh
 	
