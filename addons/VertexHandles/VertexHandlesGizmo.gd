@@ -55,17 +55,23 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	var d = p.distance_to(node3d.global_position)
 	
 	node3d.point_arrays[0][id] = p
+	#node3d.set_indexed("point_arrays[0]["+str(id)+"]", p)
 	node3d.point_arrays = node3d.point_arrays # Force setter call
 	
 	_redraw(gizmo)
 
+#var undo_redo = UndoRedo.new()
+
 func _commit_handle(gizmo,id,secondary,restore,cancel):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
-	match id:
-		0:
-			#print("commit")
-			pass
+	#print("Committing ", restore)
+	
+	#EditorPlugin.get_undo_redo().create_action("Move handle " + str(id))
+	#undo_redo.add_do_method(func: node3d.point_arrays[0][id] = get_han)
+	#undo_redo.add_undo_method(func(): node3d.point_arrays[0][id] = restore)
+	#undo_redo.add_undo_property(node3d, "point_arrays/0/"+str(id), Vector3(0,0,0))
+	#EditorUndoRedoManager.commit_action(true)
 
 func _redraw(gizmo):
 	gizmo.clear()

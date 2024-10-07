@@ -9,12 +9,10 @@ signal points_changed
 #@export var col : Color
 
 # TODO
-# - Render wireframe
 # - Add options
-# - Refresh mesh in _set_points
 # - Support double vertices
 # - Support multiple surfaces
-# - Make sure things are commiting and can unddo/redo 
+# - Make sure things are commiting and can undo/redo 
 # - Fix handle rendering bug
 
 func _ready() -> void:
