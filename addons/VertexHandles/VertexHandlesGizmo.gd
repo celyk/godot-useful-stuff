@@ -24,7 +24,7 @@ func _get_handle_name(gizmo,id,secondary):
 func _get_handle_value(gizmo,id,secondary):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
-	return node3d.points[0][id]
+	return node3d.point_arrays[0][id]
 	
 	match id:
 		0:
@@ -44,7 +44,7 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	ray_from = node3d.global_transform.affine_inverse() * ray_from
 	ray_dir = node3d.global_transform.affine_inverse().basis * ray_dir
 	
-	var plane = Plane(camera.get_camera_transform().basis[2],node3d.points[0][id])
+	var plane = Plane(camera.get_camera_transform().basis[2],node3d.point_arrays[0][id])
 	var p = Geometry3D.segment_intersects_convex(ray_from,ray_from+ray_dir*16384,[plane])
 	
 	if p.is_empty():
@@ -54,7 +54,8 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	
 	var d = p.distance_to(node3d.global_position)
 	
-	node3d.points[0][id] = p
+	node3d.point_arrays[0][id] = p
+	node3d.point_arrays = node3d.point_arrays
 	
 	_redraw(gizmo)
 
@@ -78,8 +79,8 @@ func _redraw(gizmo):
 
 	var handles := PackedVector3Array()
 	
-	for i in range(0,node3d.points.size()):
-		var point_array = node3d.points[i]
+	for i in range(0,node3d.point_arrays.size()):
+		var point_array = node3d.point_arrays[i]
 		
 		for j in range(0,point_array.size()):
 			handles.push_back( point_array[j] )
