@@ -9,6 +9,16 @@ const MyCustomNode3D = preload("VertexHandles.gd")
 func _has_gizmo(node):
 	return node is MyCustomNode3D
 
+func _create_gizmo(for_node_3d: Node3D) -> EditorNode3DGizmo:
+	if not _has_gizmo(for_node_3d):
+		return null
+	
+	var gizmo = EditorNode3DGizmo.new()
+	
+	for_node_3d._request_redraw.connect(_redraw.bind(gizmo))
+	
+	return gizmo
+
 # show gizmo name in visibility list
 func _get_gizmo_name():
 	return "VertexHandlesGizmo"
@@ -94,16 +104,16 @@ func _redraw(gizmo):
 	
 	gizmo.add_handles(handles, get_material("handles", gizmo), [], false)
 	
-	var lines = PackedVector3Array()
-	
-	var mdt := MeshDataTool.new()
-	
-	for surface_id in range(0,(node3d.mesh as Mesh).get_surface_count()):
-		mdt.create_from_surface(node3d.mesh, surface_id)
-		for face_id in range(0,mdt.get_face_count()):
-			for j in range(0,3):
-				lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,j)) )
-				lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,(j+1)%3 )) )
-	
-	gizmo.add_lines(lines, get_material("main", gizmo), false)
-	
+	if node3d.render_wireframe:
+		var lines = PackedVector3Array()
+		
+		var mdt := MeshDataTool.new()
+		
+		for surface_id in range(0,(node3d.mesh as Mesh).get_surface_count()):
+			mdt.create_from_surface(node3d.mesh, surface_id)
+			for face_id in range(0,mdt.get_face_count()):
+				for j in range(0,3):
+					lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,j)) )
+					lines.push_back( mdt.get_vertex(mdt.get_face_vertex(face_id,(j+1)%3 )) )
+		
+		gizmo.add_lines(lines, get_material("main", gizmo), false)

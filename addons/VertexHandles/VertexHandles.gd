@@ -5,8 +5,15 @@ class_name VertexHandles extends Node3D
 
 # Array of points arrays
 @export var point_arrays := [] : set = _set_points
-signal points_changed
-#@export var col : Color
+
+@export var render_wireframe := true : 
+	set(value):
+		render_wireframe = value
+		_request_redraw.emit()
+
+# PRIVATE
+
+signal _request_redraw
 
 # TODO
 # - Add options
@@ -51,6 +58,8 @@ func _update_mesh():
 			surface_arrays[i][Mesh.ARRAY_VERTEX] = PackedVector3Array( point_arrays[i] )
 			
 			mesh.add_surface_from_arrays(type, surface_arrays[i])
+	
+	_request_redraw.emit()
 
 func _set_points(value):
 	point_arrays = value
