@@ -6,6 +6,13 @@ class_name VertexHandles extends Node3D
 # Array of points arrays
 @export var points := [] : set = _set_points
 
+# TODO
+# - Render wireframe
+# - Add options
+# - Refresh mesh in _set_points
+# - Make sure things are commiting and can unddo/redo 
+# - Fix handle rendering bug
+
 func _ready() -> void:
 	assert(get_parent() is MeshInstance3D)
 	
@@ -48,8 +55,6 @@ func _set_points(value):
 	print(value)
 	points = value
 	print("settingsetting")
-	
-	
 
 
 func _to_array_mesh(_mesh:Mesh) -> ArrayMesh:
