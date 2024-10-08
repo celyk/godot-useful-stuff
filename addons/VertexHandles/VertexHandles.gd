@@ -4,6 +4,7 @@ class_name VertexHandles extends Node3D
 ## Add a new [VertexHandles] as a child of [MeshInstance3D] to modify it's mesh
 
 
+
 # PUBLIC
 
 @export var wireframe := true : 
@@ -30,7 +31,6 @@ signal _request_redraw
 # - Add options
 # - Support double vertices
 # - Support multiple surfaces
-# - Make sure things are commiting and can undo/redo 
 # - Fix handle rendering bug
 # - Sort handles from back to front
 
