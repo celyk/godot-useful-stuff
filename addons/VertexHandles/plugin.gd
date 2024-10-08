@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const MyCustomGizmoPlugin = preload("VertexHandlesGizmo.gd")
 
-var gizmo_plugin = MyCustomGizmoPlugin.new()
+var gizmo_plugin = MyCustomGizmoPlugin.new(self)
 
 func _forward_canvas_gui_input(event: InputEvent) -> bool:
 	if event is InputEventMouseMotion:

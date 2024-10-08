@@ -1,7 +1,11 @@
 @tool
 extends EditorNode3DGizmoPlugin
 
-func _init():
+var editor_plugin : EditorPlugin
+
+func _init(_editor_plugin:EditorPlugin):
+	editor_plugin = _editor_plugin
+	
 	create_material("main", Color(1,1,1), false, true, true)
 	create_handle_material("handles",false)
 
@@ -59,6 +63,11 @@ func _commit_handle(gizmo,id,secondary,restore,cancel):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
 	# TODO - use EditorUndoRedoManager
+	var undo : EditorUndoRedoManager = editor_plugin.get_undo_redo()
+	
+	undo.create_action("Move handle " + str(id))
+	
+	undo.commit_action(false)
 
 func _redraw(gizmo):
 	gizmo.clear()
