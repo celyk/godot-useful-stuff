@@ -1,7 +1,7 @@
 @tool
 class_name VertexHandles extends Node3D
 
-## Assign a new [VertexHandles] under a [MeshInstance3D] to modify it's mesh
+## Add a new [VertexHandles] as a child of [MeshInstance3D] to modify it's mesh
 
 
 # PUBLIC

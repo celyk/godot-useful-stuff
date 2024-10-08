@@ -54,8 +54,7 @@ func _set_handle(gizmo,id,secondary,camera,point):
 	# Transform the intersection point from world space to local node space
 	p = node3d.global_transform.affine_inverse() * p
 	
-	node3d.point_arrays[0][id] = p
-	node3d.point_arrays = node3d.point_arrays # Force setter call
+	node3d.set_point(0, id, p)
 	
 	_redraw(gizmo)
 
