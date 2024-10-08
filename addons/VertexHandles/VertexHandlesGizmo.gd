@@ -62,11 +62,12 @@ func _set_handle(gizmo,id,secondary,camera,point):
 func _commit_handle(gizmo,id,secondary,restore,cancel):
 	var node3d : Node3D = gizmo.get_node_3d()
 	
-	# TODO - use EditorUndoRedoManager
 	var undo : EditorUndoRedoManager = editor_plugin.get_undo_redo()
 	
+	# Allows user to undo
 	undo.create_action("Move handle " + str(id))
-	
+	undo.add_do_method(node3d, "set_point", 0, id, node3d.point_arrays[0][id])
+	undo.add_undo_method(node3d, "set_point", 0, id, restore)
 	undo.commit_action(false)
 
 func _redraw(gizmo):

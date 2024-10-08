@@ -81,6 +81,10 @@ func _set_points(value):
 	point_arrays = value
 	_update_mesh()
 
+func set_point(i:int, point_idx:int, p:Vector3):
+	point_arrays[i][point_idx] = p
+	_update_mesh()
+
 func _to_array_mesh(_mesh:Mesh) -> ArrayMesh:
 	var surface_arrays := []
 	for i in range(0,_mesh.get_surface_count()):
