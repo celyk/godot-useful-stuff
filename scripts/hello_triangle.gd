@@ -5,16 +5,16 @@ class_name HelloTriangleEffect extends CompositorEffect
 
 
 # TODO
-# Switch to UniformSetCacheRD
 # Review cleanup step
 # Fix hardcoded _framebuffer_format
 # Find out about get_view_projection() specifics
 # XR support
+# Switch to UniformSetCacheRD and implement uniform set
 
 
 # PUBLIC
 
-# Push the transform of a Node3D for testing
+## Set this to push the transform of a Node3D for testing
 @export var target_node_unique_name : String
 var transform : Transform3D
 
@@ -33,6 +33,8 @@ var _p_shader : RID
 var _clear_colors := PackedColorArray([Color.DARK_BLUE])
 
 func _init():
+	effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT
+	
 	_RD = RenderingServer.get_rendering_device()
 	RenderingServer.call_on_render_thread(_initialize_render)
 
