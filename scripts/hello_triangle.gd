@@ -8,7 +8,6 @@ class_name HelloTriangleEffect extends CompositorEffect
 # Review cleanup step
 # Fix hardcoded _framebuffer_format
 # Find out about get_view_projection() specifics
-# XR support
 # Switch to UniformSetCacheRD and implement uniform set
 
 
@@ -137,7 +136,7 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	# Loop through views just in case we're doing stereo rendering. No extra cost if this is mono.
 	for view in range(0,view_count):
 		# Get a framebuffer associated with the current view
-		_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_layer(view), render_scene_buffers.get_depth_layer(view) ], [], view_count)
+		_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_layer(view), render_scene_buffers.get_depth_layer(view) ], [], 1)
 	
 		var draw_list : int = _RD.draw_list_begin(
 			_p_framebuffer, 
