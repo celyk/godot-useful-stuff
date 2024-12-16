@@ -1,5 +1,5 @@
 @tool
-class_name HelloTriangleEffect extends RenderingEffect
+class_name HelloTriangleEffect extends CompositorEffect
 
 ## This script serves as an example for rendering directly into the scene via the RenderingEffect API
 
@@ -12,6 +12,8 @@ class_name HelloTriangleEffect extends RenderingEffect
 
 # PUBLIC
 
+# Push the transform of a Node3D for testing
+@export var target_node_unique_name : String
 var transform : Transform3D
 
 
@@ -91,7 +93,7 @@ func _initialize_render():
 	var depth_state = RDPipelineDepthStencilState.new()
 	depth_state.enable_depth_write = true
 	depth_state.enable_depth_test = true
-	depth_state.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
+	depth_state.depth_compare_operator = RenderingDevice.COMPARE_OP_GREATER
 	
 	var blend = RDPipelineColorBlendState.new()
 	blend.attachments.push_back( RDPipelineColorBlendStateAttachment.new() )
@@ -145,13 +147,36 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 			_RD.FINAL_ACTION_CONTINUE,
 			_clear_colors)
 		
+		'''var draw_list : int = _RD.draw_list_begin(
+			_p_framebuffer,
+			_RD.DRAW_IGNORE_ALL,
+			_clear_colors,
+			1.0, 
+			0, 
+			Rect2(),
+			0)'''
+		
 		_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
 		_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
 		
 		# Setup model view projection
 		var flip_y := true # true here implies that we are not using the OpenGL renderer. Oddly enough, projection matrices are provided in OpenGL style
-		var MVP : Projection = Projection.create_depth_correction(flip_y) * render_scene_data.get_view_projection(view)
+		var invert_z := Projection()
+		#invert_z[2] *= -1
+		
+		# Hacky stuff to get the target node
+		if target_node_unique_name:
+			var tree := Engine.get_main_loop() as SceneTree
+			var root : Node = tree.edited_scene_root if Engine.is_editor_hint() else tree.current_scene
+			var node_3d : Node3D = root.get_node("%"+target_node_unique_name)
+			transform = node_3d.global_transform
+		
+		
+		var MVP : Projection = render_scene_data.get_view_projection(view)
 		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
+		
+		#var MVP : Projection = render_scene_data.get_view_projection(view)
+		#MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
 		
 		# Send data to our shader
 		var buffer := PackedFloat32Array()
