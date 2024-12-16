@@ -5,8 +5,10 @@ class_name HelloTriangleEffect extends CompositorEffect
 
 
 # TODO
-# Find a way to get internal framebuffer
+# Switch to UniformSetCacheRD
+# Review cleanup step
 # Fix hardcoded _framebuffer_format
+# Find out about get_view_projection() specifics
 # XR support
 
 
@@ -50,6 +52,9 @@ func _compile_shader(source_fragment : String = _default_source_fragment, source
 	
 	return p_shader
 
+func _initialize_framebuffer():
+	pass
+
 func _initialize_render():
 	# Get the framebuffer format, somehow
 	var attachment_formats = [RDAttachmentFormat.new(),RDAttachmentFormat.new()]
@@ -59,6 +64,9 @@ func _initialize_render():
 	attachment_formats[1].format = _RD.DATA_FORMAT_D24_UNORM_S8_UINT if _RD.texture_is_format_supported_for_usage(_RD.DATA_FORMAT_D24_UNORM_S8_UINT, attachment_formats[1].usage_flags) else _RD.DATA_FORMAT_D32_SFLOAT_S8_UINT
 	
 	_framebuffer_format = _RD.framebuffer_format_create( attachment_formats )
+	
+	#_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
+	#_framebuffer_format = _p_framebuffer
 	
 	# Compile using the default shader source defined at the end of this file
 	_p_shader = _compile_shader()
@@ -109,7 +117,6 @@ func _initialize_render():
 		depth_state,
 		blend)
 
-var _prev_size : Vector2i
 func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	# Exit if we are not at the correct time
 	if _effect_callback_type != effect_callback_type: return
@@ -121,48 +128,36 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	if not render_scene_buffers: return
 	
 	var view_count : int = render_scene_buffers.get_view_count()
-	var current_size : Vector2i = render_scene_buffers.get_internal_size()
-
-	# Recreate framebuffer if needed
-	if current_size != _prev_size:
-		# Unsure what to do here, just getting a lot of errors
-		#if _p_framebuffer.is_valid():
-		#	_RD.free_rid(_p_framebuffer)
-		
-		var textures = [ render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ]
-		_p_framebuffer = _RD.framebuffer_create(textures, -1, view_count)
-		
-		_prev_size = current_size
-	
+	_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
 	
 	_RD.draw_command_begin_label("Hello, Triangle!", Color(1.0, 1.0, 1.0, 1.0))
 	
 	# Loop through views just in case we're doing stereo rendering. No extra cost if this is mono.
-	for view in range(view_count):
+	for view in range(0,view_count):
+		
 		var draw_list : int = _RD.draw_list_begin(
 			_p_framebuffer, 
 			_RD.INITIAL_ACTION_CONTINUE,
 			_RD.FINAL_ACTION_CONTINUE,
 			_RD.INITIAL_ACTION_CONTINUE,
 			_RD.FINAL_ACTION_CONTINUE,
-			_clear_colors)
-		
-		'''var draw_list : int = _RD.draw_list_begin(
-			_p_framebuffer,
-			_RD.DRAW_IGNORE_ALL,
 			_clear_colors,
-			1.0, 
-			0, 
-			Rect2(),
-			0)'''
+			1.0,
+			0,
+			Rect2())
+		
+		# How it's done in Godot 4.4
+		#var draw_list : int = _RD.draw_list_begin(
+			#_p_framebuffer,
+			#_RD.DRAW_IGNORE_ALL,
+			#_clear_colors,
+			#1.0, 
+			#0, 
+			#Rect2(),
+			#0)
 		
 		_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
 		_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
-		
-		# Setup model view projection
-		var flip_y := true # true here implies that we are not using the OpenGL renderer. Oddly enough, projection matrices are provided in OpenGL style
-		var invert_z := Projection()
-		#invert_z[2] *= -1
 		
 		# Hacky stuff to get the target node
 		if target_node_unique_name:
@@ -171,12 +166,9 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 			var node_3d : Node3D = root.get_node("%"+target_node_unique_name)
 			transform = node_3d.global_transform
 		
-		
+		# Setup model view projection
 		var MVP : Projection = render_scene_data.get_view_projection(view)
 		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
-		
-		#var MVP : Projection = render_scene_data.get_view_projection(view)
-		#MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
 		
 		# Send data to our shader
 		var buffer := PackedFloat32Array()
