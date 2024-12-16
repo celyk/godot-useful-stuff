@@ -130,13 +130,15 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	if not render_scene_buffers: return
 	
 	var view_count : int = render_scene_buffers.get_view_count()
-	_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
+	#_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
 	
 	_RD.draw_command_begin_label("Hello, Triangle!", Color(1.0, 1.0, 1.0, 1.0))
 	
 	# Loop through views just in case we're doing stereo rendering. No extra cost if this is mono.
 	for view in range(0,view_count):
-		
+		# Get a framebuffer associated with the current view
+		_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_layer(view), render_scene_buffers.get_depth_layer(view) ], [], view_count)
+	
 		var draw_list : int = _RD.draw_list_begin(
 			_p_framebuffer, 
 			_RD.INITIAL_ACTION_CONTINUE,
