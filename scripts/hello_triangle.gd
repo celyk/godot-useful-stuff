@@ -181,7 +181,22 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 			buffer[i] = MVP[i/4][i%4]
 		
 		var buffer_bytes : PackedByteArray = buffer.to_byte_array()
-		_RD.draw_list_set_push_constant(draw_list, buffer_bytes, buffer_bytes.size())
+		var p_uniform_buffer : RID = _RD.uniform_buffer_create(buffer_bytes.size(), buffer_bytes)
+		
+		var uniforms = []
+		var uniform := RDUniform.new()
+		uniform.binding = 0
+		uniform.uniform_type = _RD.UNIFORM_TYPE_UNIFORM_BUFFER
+		uniform.add_id(p_uniform_buffer)
+		uniforms.push_back( uniform )
+		
+		# Uniform set from last frame needs to be freed
+		if _p_render_pipeline_uniform_set.is_valid():
+			_RD.free_rid(_p_render_pipeline_uniform_set)
+		
+		# Bind the new uniform set
+		_p_render_pipeline_uniform_set = _RD.uniform_set_create(uniforms, _p_shader, 0)
+		_RD.draw_list_bind_uniform_set(draw_list, _p_render_pipeline_uniform_set, 0)
 		
 		# Draw it!
 		_RD.draw_list_draw(draw_list, false, 1)
@@ -217,7 +232,7 @@ const _default_source_vertex = "
 		layout(location = 0) in vec3 a_Position;
 		layout(location = 1) in vec4 a_Color;
 		
-		layout(push_constant, std430) uniform pc {
+		layout(set = 0, binding = 0) uniform UniformBufferObject {
 			mat4 MVP;
 		};
 		
