@@ -1,13 +1,13 @@
 @tool
 class_name HelloTriangleEffect extends CompositorEffect
 
-## This script serves as an example for rendering directly into the scene via the RenderingEffect API
+## This script serves as an example for rendering directly into the scene via the CompositorEffect API
 
 
 # TODO
 # Review cleanup step
 # Fix hardcoded _framebuffer_format
-# Find out about get_view_projection() specifics
+# Support legacy get_view_projection() behavior
 # Switch to UniformSetCacheRD and implement uniform set
 
 
