@@ -32,7 +32,7 @@ var _p_shader : RID
 var _clear_colors := PackedColorArray([Color.DARK_BLUE])
 
 func _init():
-	effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT
+	effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
 	
 	_RD = RenderingServer.get_rendering_device()
 	RenderingServer.call_on_render_thread(_initialize_render)
