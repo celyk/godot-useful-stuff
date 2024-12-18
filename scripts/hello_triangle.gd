@@ -26,7 +26,7 @@ var _framebuffer_format
 
 var _p_render_pipeline : RID
 var _p_render_pipeline_uniform_set : RID
-var p_vertex_buffer : RID
+var _p_vertex_buffer : RID
 var _p_vertex_array : RID
 var _p_shader : RID
 var _clear_colors := PackedColorArray([Color.DARK_BLUE])
@@ -54,9 +54,7 @@ func _compile_shader(source_fragment : String = _default_source_fragment, source
 	return p_shader
 
 func _initialize_render(view_count := 1):
-	print("init")
-	
-	# Get the framebuffer format, somehow
+	# My guess at the internal framebuffer format, based on source code. It will be verified in _render_callback before actual usage
 	var attachment_formats = [RDAttachmentFormat.new(),RDAttachmentFormat.new()]
 	attachment_formats[0].usage_flags = _RD.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT
 	attachment_formats[0].format = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
@@ -65,21 +63,20 @@ func _initialize_render(view_count := 1):
 	
 	_framebuffer_format = _RD.framebuffer_format_create( attachment_formats )
 	
+	# If we got a framebuffer already, just get that format
 	if _p_framebuffer.is_valid():
 		_framebuffer_format = _RD.framebuffer_get_format(_p_framebuffer)
 	
-	#_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
-	#_framebuffer_format = _p_framebuffer
 	
 	# Compile using the default shader source defined at the end of this file
 	_p_shader = _compile_shader()
 	
 	# Create vertex buffer
 	var vertex_buffer_bytes : PackedByteArray = _vertex_buffer.to_byte_array()
-	p_vertex_buffer = _RD.vertex_buffer_create(vertex_buffer_bytes.size(), vertex_buffer_bytes)
+	_p_vertex_buffer = _RD.vertex_buffer_create(vertex_buffer_bytes.size(), vertex_buffer_bytes)
 	
 	# A little trick to reuse the same buffer for multiple attributes
-	var vertex_buffers := [p_vertex_buffer, p_vertex_buffer]
+	var vertex_buffers := [_p_vertex_buffer, _p_vertex_buffer]
 	
 	var sizeof_float := 4 # Needed to compute byte offset and stride
 	var stride := 7 # How far until the next element
@@ -121,7 +118,7 @@ func _initialize_render(view_count := 1):
 		blend)
 
 func _render_callback(_effect_callback_type : int, render_data : RenderData):
-	# Exit if we are not at the correct time
+	# Exit if we are not at the correct stage of rendering
 	if _effect_callback_type != effect_callback_type: return
 	
 	var render_scene_buffers : RenderSceneBuffersRD = render_data.get_render_scene_buffers()
@@ -130,14 +127,25 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	# Exit if, for whatever reason, we cannot aquire buffers
 	if not render_scene_buffers: return
 	
-	# Ask for a framebuffer with multview for VR rendering
+	# Ask for a framebuffer with multiview for VR rendering
 	var view_count : int = render_scene_buffers.get_view_count()
 	_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
 	
 	# Verify that the framebuffer format is correct. If not, we need to reinitialize the render pipeline with the correct format
 	if _framebuffer_format != _RD.framebuffer_get_format(_p_framebuffer):
-		print("Framebuffer wrong. Reinitializing")
+		#_cleanup()
+		
+		if _p_render_pipeline.is_valid():
+			_RD.free_rid(_p_render_pipeline)
+		if _p_shader.is_valid():
+			_RD.free_rid(_p_shader)
+		if _p_vertex_array.is_valid():
+			_RD.free_rid(_p_vertex_array)
+		if _p_vertex_buffer.is_valid():
+			_RD.free_rid(_p_vertex_buffer)
+		
 		_initialize_render(view_count)
+		_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
 	
 	
 	_RD.draw_command_begin_label("Hello, Triangle!", Color(1.0, 1.0, 1.0, 1.0))
@@ -182,8 +190,8 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	for view in range(0, view_count):
 		var MVP : Projection = render_scene_data.get_view_projection(view)
 		
-		# Allow Godot 4.3 beta to work
-		if Engine.get_version_info() and false:
+		# A little something to allow Godot 4.3 beta to work. 4.3 beta 3 fixed this
+		if "4.3-beta" in Engine.get_version_info().string:
 			MVP = Projection.create_depth_correction(true) * MVP
 		
 		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
@@ -226,8 +234,8 @@ func _notification(what):
 			_RD.free_rid(_p_shader)
 		if _p_vertex_array.is_valid():
 			_RD.free_rid(_p_vertex_array)
-		if p_vertex_buffer.is_valid():
-			_RD.free_rid(p_vertex_buffer)
+		if _p_vertex_buffer.is_valid():
+			_RD.free_rid(_p_vertex_buffer)
 		if _p_render_pipeline_uniform_set.is_valid():
 			_RD.free_rid(_p_render_pipeline_uniform_set)
 		if _p_framebuffer.is_valid():
