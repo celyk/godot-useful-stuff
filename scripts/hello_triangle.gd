@@ -53,10 +53,9 @@ func _compile_shader(source_fragment : String = _default_source_fragment, source
 	
 	return p_shader
 
-func _initialize_framebuffer():
-	pass
-
-func _initialize_render():
+func _initialize_render(view_count := 1):
+	print("init")
+	
 	# Get the framebuffer format, somehow
 	var attachment_formats = [RDAttachmentFormat.new(),RDAttachmentFormat.new()]
 	attachment_formats[0].usage_flags = _RD.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT
@@ -65,6 +64,9 @@ func _initialize_render():
 	attachment_formats[1].format = _RD.DATA_FORMAT_D24_UNORM_S8_UINT if _RD.texture_is_format_supported_for_usage(_RD.DATA_FORMAT_D24_UNORM_S8_UINT, attachment_formats[1].usage_flags) else _RD.DATA_FORMAT_D32_SFLOAT_S8_UINT
 	
 	_framebuffer_format = _RD.framebuffer_format_create( attachment_formats )
+	
+	if _p_framebuffer.is_valid():
+		_framebuffer_format = _RD.framebuffer_get_format(_p_framebuffer)
 	
 	#_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
 	#_framebuffer_format = _p_framebuffer
@@ -128,80 +130,91 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	# Exit if, for whatever reason, we cannot aquire buffers
 	if not render_scene_buffers: return
 	
+	# Ask for a framebuffer with multview for VR rendering
 	var view_count : int = render_scene_buffers.get_view_count()
-	#_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
+	_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_texture(), render_scene_buffers.get_depth_texture() ], [], view_count)
+	
+	# Verify that the framebuffer format is correct. If not, we need to reinitialize the render pipeline with the correct format
+	if _framebuffer_format != _RD.framebuffer_get_format(_p_framebuffer):
+		print("Framebuffer wrong. Reinitializing")
+		_initialize_render(view_count)
+	
 	
 	_RD.draw_command_begin_label("Hello, Triangle!", Color(1.0, 1.0, 1.0, 1.0))
 	
-	# Loop through views just in case we're doing stereo rendering. No extra cost if this is mono.
-	for view in range(0,view_count):
-		# Get a framebuffer associated with the current view
-		_p_framebuffer = FramebufferCacheRD.get_cache_multipass([render_scene_buffers.get_color_layer(view), render_scene_buffers.get_depth_layer(view) ], [], 1)
+	# Queue draw commands, without clearing whats already in the frame
+	var draw_list : int = _RD.draw_list_begin(
+		_p_framebuffer, 
+		_RD.INITIAL_ACTION_CONTINUE,
+		_RD.FINAL_ACTION_CONTINUE,
+		_RD.INITIAL_ACTION_CONTINUE,
+		_RD.FINAL_ACTION_CONTINUE,
+		_clear_colors,
+		1.0,
+		0,
+		Rect2())
 	
-		var draw_list : int = _RD.draw_list_begin(
-			_p_framebuffer, 
-			_RD.INITIAL_ACTION_CONTINUE,
-			_RD.FINAL_ACTION_CONTINUE,
-			_RD.INITIAL_ACTION_CONTINUE,
-			_RD.FINAL_ACTION_CONTINUE,
-			_clear_colors,
-			1.0,
-			0,
-			Rect2())
-		
-		# How it's done in Godot 4.4
-		#var draw_list : int = _RD.draw_list_begin(
-			#_p_framebuffer,
-			#_RD.DRAW_IGNORE_ALL,
-			#_clear_colors,
-			#1.0, 
-			#0, 
-			#Rect2(),
-			#0)
-		
-		_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
-		_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
-		
-		# Hacky stuff to get the target node
-		if target_node_unique_name:
-			var tree := Engine.get_main_loop() as SceneTree
-			var root : Node = tree.edited_scene_root if Engine.is_editor_hint() else tree.current_scene
-			var node_3d : Node3D = root.get_node("%"+target_node_unique_name)
-			transform = node_3d.global_transform
-		
-		# Setup model view projection
+	# How it's done in Godot 4.4
+	#var draw_list : int = _RD.draw_list_begin(
+		#_p_framebuffer,
+		#_RD.DRAW_IGNORE_ALL,
+		#_clear_colors,
+		#1.0, 
+		#0, 
+		#Rect2(),
+		#0)
+	
+	_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
+	_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
+	
+	# Hacky stuff to get the target node
+	if target_node_unique_name:
+		var tree := Engine.get_main_loop() as SceneTree
+		var root : Node = tree.edited_scene_root if Engine.is_editor_hint() else tree.current_scene
+		var node_3d : Node3D = root.get_node("%"+target_node_unique_name)
+		transform = node_3d.global_transform
+	
+	# Setup model view projection, accounting for VR rendering with multiview
+	var MVPs : Array[Projection]
+	var buffer := PackedFloat32Array()
+	var sizeof_float := 4
+	buffer.resize(view_count * 16 * sizeof_float)
+	for view in range(0, view_count):
 		var MVP : Projection = render_scene_data.get_view_projection(view)
-		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
 		
-		# Send data to our shader
-		var buffer := PackedFloat32Array()
-		buffer.resize(16)
+		# Allow Godot 4.3 beta to work
+		if Engine.get_version_info() and false:
+			MVP = Projection.create_depth_correction(true) * MVP
+		
+		MVP *= Projection(render_scene_data.get_cam_transform().inverse() * transform)
+		MVPs.append(MVP)
 		
 		for i in range(0,16):
-			buffer[i] = MVP[i/4][i%4]
-		
-		var buffer_bytes : PackedByteArray = buffer.to_byte_array()
-		var p_uniform_buffer : RID = _RD.uniform_buffer_create(buffer_bytes.size(), buffer_bytes)
-		
-		var uniforms = []
-		var uniform := RDUniform.new()
-		uniform.binding = 0
-		uniform.uniform_type = _RD.UNIFORM_TYPE_UNIFORM_BUFFER
-		uniform.add_id(p_uniform_buffer)
-		uniforms.push_back( uniform )
-		
-		# Uniform set from last frame needs to be freed
-		if _p_render_pipeline_uniform_set.is_valid():
-			_RD.free_rid(_p_render_pipeline_uniform_set)
-		
-		# Bind the new uniform set
-		_p_render_pipeline_uniform_set = _RD.uniform_set_create(uniforms, _p_shader, 0)
-		_RD.draw_list_bind_uniform_set(draw_list, _p_render_pipeline_uniform_set, 0)
-		
-		# Draw it!
-		_RD.draw_list_draw(draw_list, false, 1)
-		
-		_RD.draw_list_end()
+			buffer[i + view * 16] = MVPs[view][i/4][i%4]
+	
+	# Send data to our shader
+	var buffer_bytes : PackedByteArray = buffer.to_byte_array()
+	var p_uniform_buffer : RID = _RD.uniform_buffer_create(buffer_bytes.size(), buffer_bytes)
+	
+	var uniforms = []
+	var uniform := RDUniform.new()
+	uniform.binding = 0
+	uniform.uniform_type = _RD.UNIFORM_TYPE_UNIFORM_BUFFER
+	uniform.add_id(p_uniform_buffer)
+	uniforms.push_back( uniform )
+	
+	# Uniform set from last frame needs to be freed
+	if _p_render_pipeline_uniform_set.is_valid():
+		_RD.free_rid(_p_render_pipeline_uniform_set)
+	
+	# Bind the new uniform set
+	_p_render_pipeline_uniform_set = _RD.uniform_set_create(uniforms, _p_shader, 0)
+	_RD.draw_list_bind_uniform_set(draw_list, _p_render_pipeline_uniform_set, 0)
+	
+	# Draw it!
+	_RD.draw_list_draw(draw_list, false, 1)
+	
+	_RD.draw_list_end()
 	
 	_RD.draw_command_end_label()
 
@@ -229,11 +242,13 @@ var _vertex_buffer := PackedFloat32Array([
 const _default_source_vertex = "
 		#version 450
 		
+		#extension GL_EXT_multiview : enable
+		
 		layout(location = 0) in vec3 a_Position;
 		layout(location = 1) in vec4 a_Color;
 		
 		layout(set = 0, binding = 0) uniform UniformBufferObject {
-			mat4 MVP;
+			mat4 MVP[2];
 		};
 		
 		layout(location = 2) out vec4 v_Color;
@@ -241,7 +256,7 @@ const _default_source_vertex = "
 		void main(){
 			v_Color = a_Color;
 			
-			gl_Position = MVP * vec4(a_Position, 1);
+			gl_Position = MVP[gl_ViewIndex] * vec4(a_Position, 1);
 		}
 		"
 
