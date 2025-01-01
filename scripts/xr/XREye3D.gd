@@ -76,10 +76,9 @@ func _process(delta: float) -> void:
 	var aspect : float = float(internal_viewport.size.x) / internal_viewport.size.y
 	
 	# Set the eye transform relative to the head camera
-	global_transform = XRServer.primary_interface.get_transform_for_view(index, get_parent().get_camera_transform())
+	global_transform = XRServer.primary_interface.get_transform_for_view(index, XRServer.world_origin)
 	
 	var projection_matrix : Projection = XRServer.primary_interface.get_projection_for_view(index, aspect, get_parent().near, get_parent().far)
-	print( projection_matrix )
 	
 	# Match the projection the best we can. Won't work for all XR devices without custom projection
 	near = get_parent().near
@@ -91,21 +90,34 @@ func _setup_internal_viewport() -> void:
 		remove_child(internal_viewport)
 	
 	internal_viewport = SubViewport.new()
-	RenderingServer.viewport_attach_camera(internal_viewport.get_viewport_rid(), get_camera_rid())
-	
 	add_child(internal_viewport)
 
 func _setup_blit() -> void:
+	if internal_viewport == null:
+		return
+	
+	RenderingServer.viewport_attach_camera(internal_viewport.get_viewport_rid(), get_camera_rid())
+	
 	# Set resolution
 	internal_viewport.size = XRServer.primary_interface.get_render_target_size()
 	
-	if not blit_quad:
+	if blit_quad == null:
 		blit_quad = MeshInstance3D.new()
 		blit_quad.mesh = QuadMesh.new()
 		blit_quad.mesh.size = Vector2(2,2)
-		blit_quad.material_override = ShaderMaterial.new()
-		blit_quad.material_override.shader = Shader.new()
-		blit_quad.material_override.shader.code = _blit_shader_code
+		
+		# No idea why this doesn't work
+		#blit_quad.material_override = ShaderMaterial.new()
+		#blit_quad.material_override.resource_local_to_scene = true
+		#blit_quad.material_override.shader = Shader.new()
+		#blit_quad.material_override.shader.code = _blit_shader_code
+		
+		var _material : Material = ShaderMaterial.new()
+		_material.material_override.resource_local_to_scene = true
+		_material.material_override.shader = Shader.new()
+		_material.material_override.shader.code = _blit_shader_code
+		blit_quad.material_override = _material
+		
 		add_child(blit_quad)
 	
 	# Update the uniforms
@@ -129,13 +141,23 @@ const _blit_shader_code : String = "
 			// Otherwise, undefined behavior could ensue
 			bool xr_camera = eye_offset != vec3(0);
 			
+			// Workaround because VIEW_INDEX doesn't work on the OpenGL renderer
+			int my_view_index = (EYE_OFFSET > 0.0) ? 1 : 0;
+			
 			// Render it if this is the desired view
-			if (xr_camera && VIEW_INDEX == view){
+			if (xr_camera && my_view_index == view){
 				POSITION = vec4(VERTEX.xy, 0.999999, 1.0);
 			}
 		}
 		
 		void fragment(){
-			ALBEDO = texture(view_tex, UV).rgb;
+			vec2 uv = SCREEN_UV;
+			
+			// Unsure why this is needed for it to work on the OpenGL renderer
+			if(OUTPUT_IS_SRGB){
+				uv.y = 1.0 - uv.y;
+			}
+			
+			ALBEDO = texture(view_tex, uv).rgb;
 		}
 "
