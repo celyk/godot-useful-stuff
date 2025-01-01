@@ -58,6 +58,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 	
 	return warnings
 
+# Akin to set_perspective(), but the space is sheared around the camera position.
+func _set_perspective_and_shear(camera:Camera3D, fov:float, z_near:float, z_far:float, shear:Vector2):
+	camera.set_frustum(2.0 * tan(deg_to_rad(fov/2.0)) * z_near, shear * z_near, z_near, z_far)
+
 func _ready() -> void:
 	if Engine.is_editor_hint(): return
 	if not (get_parent() is XRCamera3D): return
@@ -84,6 +88,8 @@ func _process(delta: float) -> void:
 	near = get_parent().near
 	far = get_parent().far
 	fov = get_parent().fov
+	
+	_set_perspective_and_shear(self, fov, near, far, Vector2(projection_matrix[2].x, projection_matrix[2].y) / projection_matrix[2].z)
 
 func _setup_internal_viewport() -> void:
 	if internal_viewport:
