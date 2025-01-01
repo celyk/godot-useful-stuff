@@ -91,7 +91,11 @@ func _process(delta: float) -> void:
 	far = get_parent().far
 	#fov = get_parent().fov
 	
-	fov = 100 # This number works on Quest 2
+	fov = projection_matrix.get_far_plane_half_extents().y / far
+	fov = rad_to_deg(2.0 * atan(fov))
+	print(fov)
+	
+	#fov = 100 # This number works on Quest 2
 	
 	#fov = projection_matrix.get_fovy(projection_matrix.get_fov(), aspect) #get_parent().fov
 	#fov = lerp(50.0, 130.0, 0.5+0.5*sin(Time.get_ticks_msec() / 1000.0))
