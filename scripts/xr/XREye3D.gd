@@ -45,6 +45,7 @@ var blit_quad : MeshInstance3D
 # - Support an external viewport
 # - Support an external XRCamera3D (one that is not parent)
 # - Render everything to left eye for recording videos
+# - Add a warning if we get a bad projection matrix
 
 
 # PRIVATE
@@ -83,13 +84,22 @@ func _process(delta: float) -> void:
 	global_transform = XRServer.primary_interface.get_transform_for_view(index, XRServer.world_origin)
 	
 	var projection_matrix : Projection = XRServer.primary_interface.get_projection_for_view(index, aspect, get_parent().near, get_parent().far)
+	#print(XRServer.primary_interface.get_render_target_size())
 	
-	# Match the projection the best we can. Won't work for all XR devices without custom projection
+	# Match the projection the best we can. May not work for all XR devices without custom projection
 	near = get_parent().near
 	far = get_parent().far
-	fov = get_parent().fov
+	#fov = get_parent().fov
 	
-	_set_perspective_and_shear(self, fov, near, far, Vector2(projection_matrix[2].x, projection_matrix[2].y) / projection_matrix[2].z)
+	fov = 100 # This number works on Quest 2
+	
+	#fov = projection_matrix.get_fovy(projection_matrix.get_fov(), aspect) #get_parent().fov
+	#fov = lerp(50.0, 130.0, 0.5+0.5*sin(Time.get_ticks_msec() / 1000.0))
+	
+	var shear := Transform3D(projection_matrix).basis.inverse()[2]
+	shear /= shear.z
+	
+	_set_perspective_and_shear(self, fov, near, far, -Vector2(shear.x, shear.y))
 
 func _setup_internal_viewport() -> void:
 	if internal_viewport:
@@ -119,16 +129,16 @@ func _setup_blit() -> void:
 		#blit_quad.material_override.shader.code = _blit_shader_code
 		
 		var _material : Material = ShaderMaterial.new()
-		_material.material_override.resource_local_to_scene = true
-		_material.material_override.shader = Shader.new()
-		_material.material_override.shader.code = _blit_shader_code
+		_material.resource_local_to_scene = true
+		_material.shader = Shader.new()
+		_material.shader.code = _blit_shader_code
 		blit_quad.material_override = _material
 		
 		add_child(blit_quad)
 	
 	# Update the uniforms
-	blit_quad.material_override.set_shader_paramater("view", index)
-	blit_quad.material_override.set_shader_paramater("view_tex", internal_viewport.get_texture())
+	blit_quad.material_override.set_shader_parameter("view", index)
+	blit_quad.material_override.set_shader_parameter("view_tex", internal_viewport.get_texture())
 
 
 const _blit_shader_code : String = "
@@ -145,10 +155,10 @@ const _blit_shader_code : String = "
 			
 			// Find a way to detect XRCamera so we can render only to that
 			// Otherwise, undefined behavior could ensue
-			bool xr_camera = eye_offset != vec3(0);
+			bool xr_camera = EYE_OFFSET != vec3(0);
 			
 			// Workaround because VIEW_INDEX doesn't work on the OpenGL renderer
-			int my_view_index = (EYE_OFFSET > 0.0) ? 1 : 0;
+			int my_view_index = (EYE_OFFSET.x > 0.0) ? 1 : 0;
 			
 			// Render it if this is the desired view
 			if (xr_camera && my_view_index == view){
@@ -163,6 +173,8 @@ const _blit_shader_code : String = "
 			if(OUTPUT_IS_SRGB){
 				uv.y = 1.0 - uv.y;
 			}
+			
+			//if (uv.x > 0.5) discard;
 			
 			ALBEDO = texture(view_tex, uv).rgb;
 		}
