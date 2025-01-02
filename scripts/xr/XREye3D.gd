@@ -84,9 +84,22 @@ func _process(delta: float) -> void:
 	# Set the eye transform relative to the head camera
 	global_transform = XRServer.primary_interface.get_transform_for_view(index, XRServer.world_origin)
 	
+	var flip_y : bool = ProjectSettings.get("rendering/renderer/rendering_method") != "gl_compatibility"
 	var projection_matrix : Projection = XRServer.primary_interface.get_projection_for_view(index, screen_aspect, get_parent().near, get_parent().far)
+
+	fov = projection_matrix.get_fov()
+	
 	var actual_aspect = projection_matrix[1][1] / projection_matrix[0][0]
+	fov = projection_matrix.get_fovy(fov, 1.0/actual_aspect)
+	
+	projection_matrix = Projection.create_depth_correction(flip_y) * projection_matrix
+	
 	#projection_matrix = XRServer.primary_interface.get_projection_for_view(index, screen_aspect, get_parent().near, get_parent().far)
+	
+	
+	#fov = projection_matrix.get_far_plane_half_extents().y / projection_matrix.get_z_far()
+	#fov = rad_to_deg(2.0 * atan(fov))
+	#fov = 100
 	
 	# Take out the non uniform aspect
 	projection_matrix = Projection(Transform3D().scaled(
@@ -103,9 +116,11 @@ func _process(delta: float) -> void:
 	far = get_parent().far
 	#fov = get_parent().fov
 	
-	fov = projection_matrix.get_far_plane_half_extents().y / far
-	fov = rad_to_deg(2.0 * atan(fov))
-	print(fov)
+	#fov = rad_to_deg(2.0 * atan(fov))
+	#fov += Input.get_axis("ui_down","ui_up")*.1
+	
+	#fov = 98
+	print("FOV: ", fov)
 	
 	#fov = 100 # This number works on Quest 2
 	
@@ -183,7 +198,7 @@ const _blit_shader_code : String = "
 			// Render it if this is the desired view
 			if (xr_camera && my_view_index == view){
 				POSITION = vec4(VERTEX.xy, 0.999999, 1.0);
-				POSITION.xy *= aspect;
+				POSITION.xy *= scale;
 			}
 		}
 		
@@ -195,8 +210,9 @@ const _blit_shader_code : String = "
 				uv.y = 1.0 - uv.y;
 			}
 			
-			//if (uv.x > 0.5) discard;
+			if (uv.x > 0.5+0.5*sin(TIME*3.0)) discard;
 			
 			ALBEDO = texture(view_tex, uv).rgb;
+			//ALPHA = 0.5;
 		}
 "
