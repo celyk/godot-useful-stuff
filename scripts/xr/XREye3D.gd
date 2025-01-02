@@ -75,6 +75,9 @@ func _ready() -> void:
 	_setup_blit()
 
 func _process(delta: float) -> void:
+	RenderingServer.call_on_render_thread(_setup_projection)
+
+func _setup_projection() -> void:
 	if Engine.is_editor_hint(): return
 	if not (get_parent() is XRCamera3D): return
 	
@@ -140,6 +143,8 @@ func _setup_internal_viewport() -> void:
 		remove_child(internal_viewport)
 	
 	internal_viewport = SubViewport.new()
+	internal_viewport.transparent_bg = get_viewport().transparent_bg
+	
 	add_child(internal_viewport)
 
 func _setup_blit() -> void:
