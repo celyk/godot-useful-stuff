@@ -78,12 +78,24 @@ func _process(delta: float) -> void:
 	if Engine.is_editor_hint(): return
 	if not (get_parent() is XRCamera3D): return
 	
-	var aspect : float = float(internal_viewport.size.x) / internal_viewport.size.y
+	var screen_resolution = XRServer.primary_interface.get_render_target_size()
+	var screen_aspect : float = float(screen_resolution.x) / screen_resolution.y
 	
 	# Set the eye transform relative to the head camera
 	global_transform = XRServer.primary_interface.get_transform_for_view(index, XRServer.world_origin)
 	
-	var projection_matrix : Projection = XRServer.primary_interface.get_projection_for_view(index, aspect, get_parent().near, get_parent().far)
+	var projection_matrix : Projection = XRServer.primary_interface.get_projection_for_view(index, screen_aspect, get_parent().near, get_parent().far)
+	var actual_aspect = projection_matrix[1][1] / projection_matrix[0][0]
+	#projection_matrix = XRServer.primary_interface.get_projection_for_view(index, screen_aspect, get_parent().near, get_parent().far)
+	
+	# Take out the non uniform aspect
+	projection_matrix = Projection(Transform3D().scaled(
+				Vector3(1.0/(actual_aspect/screen_aspect),1,1))
+			) * projection_matrix
+	
+	internal_viewport.size.x = internal_viewport.size.y * actual_aspect
+	
+	#projection_matrix = Projection
 	#print(XRServer.primary_interface.get_render_target_size())
 	
 	# Match the projection the best we can. May not work for all XR devices without custom projection
@@ -100,10 +112,13 @@ func _process(delta: float) -> void:
 	#fov = projection_matrix.get_fovy(projection_matrix.get_fov(), aspect) #get_parent().fov
 	#fov = lerp(50.0, 130.0, 0.5+0.5*sin(Time.get_ticks_msec() / 1000.0))
 	
-	var shear := Transform3D(projection_matrix).basis.inverse()[2]
-	shear /= shear.z
+	var shear := Transform3D(projection_matrix).basis[2]
+	shear.x /= projection_matrix[0][0]
+	shear.y /= projection_matrix[1][1]
+	shear.z = 1.0
 	
-	_set_perspective_and_shear(self, fov, near, far, -Vector2(shear.x, shear.y))
+	_set_perspective_and_shear(self, fov, near, far, Vector2(shear.x, shear.y))
+	blit_quad.material_override.set_shader_parameter("scale", Vector2(actual_aspect,1))
 
 func _setup_internal_viewport() -> void:
 	if internal_viewport:
@@ -152,6 +167,7 @@ const _blit_shader_code : String = "
 		
 		uniform int view = 0;
 		uniform sampler2D view_tex : source_color;
+		uniform vec2 scale = vec2(1.0);
 		
 		void vertex(){
 			// Cull everything
@@ -167,6 +183,7 @@ const _blit_shader_code : String = "
 			// Render it if this is the desired view
 			if (xr_camera && my_view_index == view){
 				POSITION = vec4(VERTEX.xy, 0.999999, 1.0);
+				POSITION.xy *= aspect;
 			}
 		}
 		
