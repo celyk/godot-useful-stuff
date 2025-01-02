@@ -5,3 +5,11 @@ Here I will accumulate my most helpful scripts, addons, shaders, and examples fo
 Rendering is my primary interest, so many things here will revolve around that.
 
 To download a folder you can use https://download-directory.github.io/
+
+# Feedback node
+
+# Hello, Triangle!
+
+# XREye3D
+
+# vertexHandles
