@@ -20,7 +20,7 @@ func clear_shader_macros() -> void:
 
 ## Updates the ShaderInclude resource, which triggers all shaders that depend on it to recompile!
 func _update():
-	var include_file : ShaderInclude = preload("macroaccess.gdshaderinc")
+	var include_file : ShaderInclude = preload("res://addons/MacroAccess/macroaccess.gdshaderinc")
 	
 	var new_code : String = ""
 	for name in _macros.keys():
@@ -31,4 +31,4 @@ func _update():
 		new_code += "#define " + name + " " + _macros[name] + "\n\n"
 	
 	include_file.code = new_code
-	#print(updated_code.code)
+	print(include_file.code)
