@@ -67,6 +67,8 @@ var _p_camera : RID
 var _p_base : RID
 var _p_instance : RID
 var _material : Material
+var _p_light_base : RID
+var _p_light_instance : RID
 
 func _init_blit() -> void:
 	if _p_viewport.is_valid():
@@ -103,12 +105,18 @@ func _init_blit() -> void:
 	_material.shader.code = _blit_shader_code
 	
 	RenderingServer.mesh_surface_set_material(_p_base, 0, _material.get_rid())
+	
+	# light setup
+	_p_light_base = RenderingServer.directional_light_create()
+	_p_light_instance = RenderingServer.instance_create2(_p_light_base, _p_scenario)
 
 func _cleanup_blit() -> void:
 	RenderingServer.free_rid(_p_instance)
 	RenderingServer.free_rid(_p_base)
 	RenderingServer.free_rid(_p_camera)
 	RenderingServer.free_rid(_p_scenario)
+	RenderingServer.free_rid(_p_light_instance)
+	RenderingServer.free_rid(_p_light_base)
 
 
 # DATA
@@ -116,9 +124,9 @@ func _cleanup_blit() -> void:
 const _blit_shader_code = "
 		shader_type spatial;
 		
-		render_mode unshaded, cull_disabled;
+		render_mode cull_disabled, ambient_light_disabled, depth_draw_never;
 		
-		uniform sampler2D tex : source_color,filter_nearest;
+		uniform sampler2D tex : source_color, filter_nearest;
 		
 		void vertex(){
 			POSITION = MODEL_MATRIX * vec4(VERTEX,1);
@@ -126,8 +134,26 @@ const _blit_shader_code = "
 		}
 		
 		void fragment(){
+			FOG = vec4(0);
+		}
+		
+		// This expects 0-1 range input, outside that range it behaves poorly.
+		vec3 srgb_to_linear(vec3 color) {
+			// Approximation from http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+			return mix(pow((color.rgb + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)), color.rgb * (1.0 / 12.92), lessThan(color.rgb, vec3(0.04045)));
+		}
+		
+		// Workaround for ALBEDO color error on the compatibility renderer
+		void light(){
 			vec4 samp = textureLod(tex, UV, 0.0);
-			ALBEDO = samp.rgb;
+			
+			if(OUTPUT_IS_SRGB){
+				SPECULAR_LIGHT = srgb_to_linear(samp.rgb);
+			}
+			else{
+				SPECULAR_LIGHT = samp.rgb;
+			}
+			
 			ALPHA = samp.a;
 		}
 		"
