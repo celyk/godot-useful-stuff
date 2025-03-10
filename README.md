@@ -11,7 +11,7 @@ An example for doing basic graphics using the low level RenderingDevice
 
 ![HelloTriangle](https://github.com/user-attachments/assets/04e94828-aea1-4a9d-bc41-d949aea83fcb)
 
-# Feedback node
+# Feedback
 A custom node for creating texture feedback effects with ease
 
 https://github.com/user-attachments/assets/afd33554-0e91-4315-8c8c-71518e276eee
@@ -25,3 +25,9 @@ https://github.com/user-attachments/assets/2dafe7dc-febb-4110-b0e7-7827c6011b62
 An experiment to allow vertices of a mesh to be grabbed inside the editor
 
 https://github.com/user-attachments/assets/c509b3be-b005-4c79-ba3b-94d36a6e3033
+
+# MacroAccess
+This addons implements a workaround for the lack of preprocessor access from in script. You have to use the addon's shader include to access the macros
+
+https://github.com/user-attachments/assets/cedca5ab-d958-4f09-9a4c-dd549c0e494f
+
