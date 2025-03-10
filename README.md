@@ -17,7 +17,7 @@ A custom node for creating texture feedback effects with ease
 https://github.com/user-attachments/assets/afd33554-0e91-4315-8c8c-71518e276eee
 
 # XREye3D
-A node I developed to make it possible to detach each view from the XRCamera3D. It works by rendering each view to a seperate SubViewport. I took a care to make sure the projection is correct for Quest headsets
+A node I developed to make it possible to detach each view from the XRCamera3D. It works by rendering each view to a seperate SubViewport. I took great care to ensure the projection is correct for Quest headsets
 
 https://github.com/user-attachments/assets/2dafe7dc-febb-4110-b0e7-7827c6011b62
 
