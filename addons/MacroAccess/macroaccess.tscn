@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://gpcvj3eu10o7"]
+
+[ext_resource type="Script" uid="uid://ch66toxiry17c" path="res://addons/macroaccess/macroaccess.gd" id="1_t5rj2"]
+
+[node name="macroaccess" type="Node"]
+script = ExtResource("1_t5rj2")

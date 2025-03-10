@@ -5,7 +5,7 @@
 .import/
 export.cfg
 export_credentials.cfg
-.uid
+*.uid
 
 # Imported translations (automatically generated from CSV files)
 *.translation
