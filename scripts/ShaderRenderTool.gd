@@ -38,13 +38,28 @@ func set_shader(value : RID):
 	_init_render_pipeline()
 
 func render() -> Image:
-	var draw_list : int = _RD.draw_list_begin(
-			_p_framebuffer, 
+	# Queue draw commands, without clearing whats already in the frame
+	var draw_list : int = -1
+	if Engine.get_version_info().major == 4 and Engine.get_version_info().minor < 4:
+		draw_list = _RD.call("draw_list_begin",
+			_p_framebuffer,
 			_RD.INITIAL_ACTION_CLEAR,
 			_RD.FINAL_ACTION_READ,
 			_RD.INITIAL_ACTION_CLEAR,
 			_RD.FINAL_ACTION_READ,
-			_clear_colors)
+			_clear_colors,
+			1.0,
+			0,
+			Rect2())
+	else:
+		draw_list = _RD.call("draw_list_begin",
+			_p_framebuffer,
+			_RD.DRAW_CLEAR_COLOR_ALL,
+			_clear_colors,
+			1.0, 
+			0, 
+			Rect2(),
+			0)
 	
 	_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
 	_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)

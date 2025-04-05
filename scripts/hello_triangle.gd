@@ -151,26 +151,27 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	_RD.draw_command_begin_label("Hello, Triangle!", Color(1.0, 1.0, 1.0, 1.0))
 	
 	# Queue draw commands, without clearing whats already in the frame
-	var draw_list : int = _RD.draw_list_begin(
-		_p_framebuffer, 
-		_RD.INITIAL_ACTION_CONTINUE,
-		_RD.FINAL_ACTION_CONTINUE,
-		_RD.INITIAL_ACTION_CONTINUE,
-		_RD.FINAL_ACTION_CONTINUE,
-		_clear_colors,
-		1.0,
-		0,
-		Rect2())
-	
-	# How it's done in Godot 4.4
-	#var draw_list : int = _RD.draw_list_begin(
-		#_p_framebuffer,
-		#_RD.DRAW_IGNORE_ALL,
-		#_clear_colors,
-		#1.0, 
-		#0, 
-		#Rect2(),
-		#0)
+	var draw_list : int = -1
+	if Engine.get_version_info().major == 4 and Engine.get_version_info().minor < 4:
+		draw_list = _RD.call("draw_list_begin",
+			_p_framebuffer,
+			_RD.INITIAL_ACTION_CONTINUE,
+			_RD.FINAL_ACTION_CONTINUE,
+			_RD.INITIAL_ACTION_CONTINUE,
+			_RD.FINAL_ACTION_CONTINUE,
+			_clear_colors,
+			1.0,
+			0,
+			Rect2())
+	else:
+		draw_list = _RD.call("draw_list_begin",
+			_p_framebuffer,
+			_RD.DRAW_IGNORE_ALL,
+			_clear_colors,
+			1.0, 
+			0, 
+			Rect2(),
+			0)
 	
 	_RD.draw_list_bind_render_pipeline(draw_list, _p_render_pipeline)
 	_RD.draw_list_bind_vertex_array(draw_list, _p_vertex_array)
