@@ -161,7 +161,8 @@ func _setup_viewport():
 	RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_DISABLED)
 	RenderingServer.viewport_set_clear_mode(_p_viewport, RenderingServer.VIEWPORT_CLEAR_ONLY_NEXT_FRAME)
 	RenderingServer.viewport_set_active(_p_viewport, true)
-	RenderingServer.viewport_set_use_hdr_2d(_p_viewport, true)
+	RenderingServer.viewport_set_use_hdr_2d(_p_viewport, hdr)
+	RenderingServer.viewport_set_transparent_background(_p_viewport, transparency)
 	
 	_p_canvas_item = RenderingServer.canvas_item_create()
 	RenderingServer.canvas_item_set_parent(_p_canvas_item, _p_canvas)
@@ -175,10 +176,11 @@ func _blit_viewport():
 	if not p_tex.is_valid(): return
 	set_image(img)
 
-func _cleanup():
-	RenderingServer.free_rid(_p_viewport)
-	RenderingServer.free_rid(_p_canvas_item)
-	RenderingServer.free_rid(_p_canvas)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE: # Cleanup
+		RenderingServer.free_rid(_p_viewport)
+		RenderingServer.free_rid(_p_canvas_item)
+		RenderingServer.free_rid(_p_canvas)
 
 #endregion
 
