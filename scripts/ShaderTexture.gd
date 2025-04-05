@@ -178,6 +178,7 @@ func _blit_viewport():
 func _cleanup():
 	RenderingServer.free_rid(_p_viewport)
 	RenderingServer.free_rid(_p_canvas_item)
+	RenderingServer.free_rid(_p_canvas)
 
 #endregion
 
