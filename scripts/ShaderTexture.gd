@@ -64,19 +64,28 @@ func save_output() -> void:
 	var path := input_texture.resource_path
 	var idx : int = int( path.get_file().get_basename().split("_")[-1] )
 	var new_path := path.get_basename() + "_" + str(idx+1)# + "." + path.get_extension()
+	#print(new_path)
 	
-	ResourceSaver.save(self, new_path + ".png")
+	if not input_texture.is_built_in():
+		ResourceSaver.save(self, new_path + ".png")
+		#ResourceLoader.load(new_path + ".png")
 	
-	if input_texture.is_built_in():
-		print("built in")
-		DisplayServer.file_dialog_show(
-			"Whoa", 
-			"res://", 
-			"test.png", 
-			false, 
-			DisplayServer.FILE_DIALOG_MODE_SAVE_FILE,
-			PackedStringArray(),
-			func(a,b,c): pass)
+	# If the resource isn't associated with a specific file, open a file save dialog
+	elif Engine.is_editor_hint():
+		var dialog := EditorFileDialog.new()
+		dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+		dialog.filters = PackedStringArray(["*.png, *.jpg, *.jpeg ; Supported Images"])
+		
+		dialog.file_selected.connect(
+			func(path: String):
+				ResourceSaver.save(self, path)
+		
+		)
+		
+		var tree := Engine.get_main_loop() as SceneTree
+		tree.root.add_child(dialog)
+		
+		dialog.popup_file_dialog()
 
 func load_last() -> void:
 	pass
