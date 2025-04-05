@@ -59,7 +59,24 @@ func generate() -> void:
 	_blit_viewport()
 
 func save_output() -> void:
-	pass
+	if input_texture == null: return
+	
+	var path := input_texture.resource_path
+	var idx : int = int( path.get_file().get_basename().split("_")[-1] )
+	var new_path := path.get_basename() + "_" + str(idx+1)# + "." + path.get_extension()
+	
+	ResourceSaver.save(self, new_path + ".png")
+	
+	if input_texture.is_built_in():
+		print("built in")
+		DisplayServer.file_dialog_show(
+			"Whoa", 
+			"res://", 
+			"test.png", 
+			false, 
+			DisplayServer.FILE_DIALOG_MODE_SAVE_FILE,
+			PackedStringArray(),
+			func(a,b,c): pass)
 
 func load_last() -> void:
 	pass
