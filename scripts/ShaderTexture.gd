@@ -61,14 +61,12 @@ func generate() -> void:
 func save_output() -> void:
 	if input_texture == null: return
 	
-	var path := input_texture.resource_path
-	var idx : int = int( path.get_file().get_basename().split("_")[-1] )
-	var new_path := path.get_basename() + "_" + str(idx+1)# + "." + path.get_extension()
-	#print(new_path)
+	var path := input_texture.resource_path.get_basename()
 	
 	if not input_texture.is_built_in():
-		ResourceSaver.save(self, new_path + ".png")
-		#ResourceLoader.load(new_path + ".png")
+		var new_path = _find_unique_filename(path)
+		get_image().save_png(new_path + ".png")
+		EditorInterface.get_resource_filesystem().scan()
 	
 	# If the resource isn't associated with a specific file, open a file save dialog
 	elif Engine.is_editor_hint():
@@ -77,9 +75,9 @@ func save_output() -> void:
 		dialog.filters = PackedStringArray(["*.png, *.jpg, *.jpeg ; Supported Images"])
 		
 		dialog.file_selected.connect(
-			func(path: String):
-				ResourceSaver.save(self, path)
-		
+			func(_path: String):
+				get_image().save_png(_path)
+				EditorInterface.get_resource_filesystem().scan()
 		)
 		
 		var tree := Engine.get_main_loop() as SceneTree
@@ -182,3 +180,31 @@ func _cleanup():
 	RenderingServer.free_rid(_p_canvas_item)
 
 #endregion
+
+
+func _find_unique_filename(path : String):
+	path = path.get_basename()
+	var base_dir := path.get_base_dir()
+	
+	var file_name := path.get_file()
+	var underscore_idx := file_name.rfind("_")
+	
+	# Strip the file name of the _number
+	if underscore_idx != -1:
+		file_name = file_name.substr(0, underscore_idx)
+	
+	var dir := DirAccess.open(base_dir)
+	
+	var files := dir.get_files()
+	for i in range(0, files.size()+1):
+		# Put the _number back
+		var new_file_name := file_name + "_" + str(i)
+		var new_path := base_dir.path_join(new_file_name)
+		
+		# Be sure that no other file in the directory has this file name
+		if dir.file_exists(new_file_name + ".png"):
+			continue
+		
+		return new_path
+	
+	return ERR_FILE_NOT_FOUND
