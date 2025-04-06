@@ -159,7 +159,7 @@ func _setup_viewport():
 	
 	RenderingServer.viewport_attach_canvas(_p_viewport, _p_canvas)
 	RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_DISABLED)
-	RenderingServer.viewport_set_clear_mode(_p_viewport, RenderingServer.VIEWPORT_CLEAR_ONLY_NEXT_FRAME)
+	RenderingServer.viewport_set_clear_mode(_p_viewport, RenderingServer.VIEWPORT_CLEAR_ALWAYS)
 	RenderingServer.viewport_set_active(_p_viewport, true)
 	RenderingServer.viewport_set_use_hdr_2d(_p_viewport, hdr)
 	RenderingServer.viewport_set_transparent_background(_p_viewport, transparency)
