@@ -62,7 +62,7 @@ func _initialize_bus() -> Error:
 	
 	return OK
 
-var _microphone_stream_player : AudioStreamPlayer
+static var _microphone_stream_player : AudioStreamPlayer
 func _initialize_microphone() -> Error:
 	if _microphone_stream_player and _microphone_stream_player.is_inside_tree(): 
 		return OK
