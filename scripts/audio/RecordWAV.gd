@@ -33,8 +33,7 @@ func start_record():
 func stop_record():
 	_effect_record.set_recording_active(false)
 	
-	var test = preload("res://confirmation_004.wav")
-	test = _effect_record.get_recording()
+	var test := _effect_record.get_recording()
 	
 	data = test.data
 	format = test.format
