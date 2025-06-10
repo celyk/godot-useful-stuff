@@ -17,6 +17,13 @@ class_name RecordWAV extends AudioStreamWAV
 ## record_wav.stop_record()
 ## [/codeblock]
 
+# TODO
+# - Is there any way to detect the mic in real time?
+# - Is there any way to bypass the SceneTree?
+# - Is there any way to bypass the audio bus?
+# - Microphone should never ever go to Master
+# - Make the system more resilient
+# - Normalize audio clip? Could delegate to another AudioStream
 
 #@export_tool_button("Pulse") var pulse : _
 ## Just a variable that controls the recording. Still working on it
@@ -37,6 +44,9 @@ class_name RecordWAV extends AudioStreamWAV
 ## Controls how much padding is added before the peak of the recording
 @export var crop_padding := 0.1
 
+func _init() -> void:
+	AudioServer.bus_layout_changed.connect(_validate_audio_state)
+
 ## Start the recording
 func start_record():
 	format = AudioStreamWAV.FORMAT_16_BITS
@@ -49,6 +59,7 @@ func start_record():
 	
 	if _initialize_microphone() != OK:
 		printerr("Failed to initialize microphone")
+		_cleanup_microphone()
 		return
 	
 	_effect_record.set_recording_active(true)
@@ -61,13 +72,18 @@ func stop_record():
 	
 	# Avoid cropping if there's too much data
 	if crop_to_peak and wav_recording.get_length() < 3.0:
-		print_debug("Too much data, cropping avoided")
 		var start_t := _find_peak(wav_recording) - crop_padding
 		_crop_wav(wav_recording, start_t)
+	else:
+		print_debug("Too much data, cropping avoided")
 	
 	data = wav_recording.data
 	format = wav_recording.format
+	mix_rate = wav_recording.mix_rate
 	stereo = wav_recording.stereo
+	
+	# Prevent the microphone from hurting our ears
+	_cleanup_microphone()
 	
 	emit_changed()
 
@@ -92,19 +108,27 @@ func _initialize_bus() -> Error:
 	
 	# Refresh the bus layout
 	AudioServer.bus_layout_changed.emit()
+	AudioServer.bus_renamed.emit(bus_idx, "New Bus", "Record")
 	
 	return OK
 
 static var _microphone_stream_player : AudioStreamPlayer
+const _microphone_node_name := "AudioStreamPlayerMicrophone"
 func _initialize_microphone() -> Error:
+	var tree := Engine.get_main_loop() as SceneTree
+	
+	# Check to see if the AudioStreamPlayer already exists somewhere
+	if _microphone_stream_player == null:
+		_microphone_stream_player = tree.root.find_child(_microphone_node_name)
+	
+	# If it exists, we're good to go
 	if _microphone_stream_player and _microphone_stream_player.is_inside_tree(): 
 		return OK
 	
 	_microphone_stream_player = AudioStreamPlayer.new()
 	_microphone_stream_player.stream = AudioStreamMicrophone.new()
 	_microphone_stream_player.bus = "Record"
-	
-	var tree := Engine.get_main_loop() as SceneTree
+	_microphone_stream_player.name = _microphone_node_name
 	
 	tree.root.add_child(_microphone_stream_player)
 	
@@ -112,6 +136,23 @@ func _initialize_microphone() -> Error:
 	_microphone_stream_player.playing = true
 	
 	return OK
+
+func _cleanup_microphone():
+	# Another chance to find the node somewhere
+	if _microphone_stream_player == null:
+		var tree := Engine.get_main_loop() as SceneTree
+		_microphone_stream_player = tree.root.find_child(_microphone_node_name)
+	
+	# Free the AudioStreamPlayer
+	if _microphone_stream_player and !_microphone_stream_player.is_queued_for_deletion():
+		_microphone_stream_player.queue_free()
+
+func _validate_audio_state():
+	var bus_idx := AudioServer.get_bus_index("Record")
+	if bus_idx == -1:
+		if _effect_record and _effect_record.is_recording_active():
+			push_error("Bus was removed during recording. Removing microphone now")
+			_cleanup_microphone()
 
 func _crop_wav(wav:AudioStreamWAV, start_t:float, end_t:=-1.0):
 	var start_sample_pos : int = start_t * wav.mix_rate
