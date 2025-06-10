@@ -1,9 +1,25 @@
 @tool
 class_name RecordWAV extends AudioStreamWAV
 
-## A resource that allows recording from the primary microphone
+## A Resource that allows recording from the primary microphone.
+##
+## RecordWAV adds a bus named "Record" to the audio bus layout. You are free to use the Audio tab to add additional effects to the bus!
+## [br]
+## [br]The following audio settings must be set:
+## [br]`audio/driver/enable_input = true`
+## [br]`audio/general/ios/session_category = Play and Record`
+## [br]
+## [br]Code example WIP
+## [codeblock]
+## var record_wav = RecordWAV.new()
+## record_wav.start_record()
+## ...
+## record_wav.stop_record()
+## [/codeblock]
+
 
 #@export_tool_button("Pulse") var pulse : _
+## Just a variable that controls the recording. Still working on it
 @export var recording := false :
 	set(value):
 		if value == recording: return
@@ -15,6 +31,13 @@ class_name RecordWAV extends AudioStreamWAV
 		else:
 			stop_record()
 
+## Automatically crops the recording around the peak
+@export var crop_to_peak := true
+
+## Controls how much padding is added before the peak of the recording
+@export var crop_padding := 0.1
+
+## Start the recording
 func start_record():
 	format = AudioStreamWAV.FORMAT_16_BITS
 	#mix_rate = 48000
@@ -30,16 +53,26 @@ func start_record():
 	
 	_effect_record.set_recording_active(true)
 
+## Stop the recording
 func stop_record():
 	_effect_record.set_recording_active(false)
 	
-	var test := _effect_record.get_recording()
+	var wav_recording := _effect_record.get_recording()
 	
-	data = test.data
-	format = test.format
-	stereo = test.stereo
+	# Avoid cropping if there's too much data
+	if crop_to_peak and wav_recording.get_length() < 3.0:
+		print_debug("Too much data, cropping avoided")
+		var start_t := _find_peak(wav_recording) - crop_padding
+		_crop_wav(wav_recording, start_t)
+	
+	data = wav_recording.data
+	format = wav_recording.format
+	stereo = wav_recording.stereo
 	
 	emit_changed()
+
+
+# PRIVATE
 
 var _effect_record := AudioEffectRecord.new()
 func _initialize_bus() -> Error:
@@ -79,3 +112,94 @@ func _initialize_microphone() -> Error:
 	_microphone_stream_player.playing = true
 	
 	return OK
+
+func _crop_wav(wav:AudioStreamWAV, start_t:float, end_t:=-1.0):
+	var start_sample_pos : int = start_t * wav.mix_rate
+	
+	var byte_per_sample := _get_bytes_per_sample(wav)
+	
+	if end_t < 0.0:
+		wav.data = wav.data.slice(start_sample_pos * byte_per_sample, -1)
+	else:
+		var end_sample_pos : int = end_t * wav.mix_rate
+		wav.data = wav.data.slice(start_sample_pos * byte_per_sample, end_sample_pos * byte_per_sample)
+
+'''
+func _instantiate_playback() -> AudioStreamPlayback:
+	var playback := self.instantiate_playback()
+	
+	var t := _find_peak(self)
+	print(t)
+	playback.start(t)
+	
+	return playback
+'''
+
+func _get_bytes_per_sample(wav:AudioStreamWAV) -> int:
+	var bytes_per_sample : int
+	match format:
+		FORMAT_8_BITS:
+			bytes_per_sample = 1
+		FORMAT_16_BITS:
+			bytes_per_sample = 2
+		_:
+			bytes_per_sample = 1
+	
+	if wav.stereo:
+		bytes_per_sample *= 2
+	
+	return bytes_per_sample
+
+
+# JANK
+
+# Finds the time in seconds of the loudest point in the sound
+func _find_peak(wav:AudioStreamWAV) -> float:
+	if wav.format > 1: return 0.0
+	
+	var min_value := 2**16
+	var max_value := -2**16
+	
+	#var difference := 2**31
+	
+	var sample_pos := 0
+	
+	var bytes_per_sample : int = _get_bytes_per_sample(wav)
+	
+	var num_samples := wav.data.size() / bytes_per_sample
+	
+	
+	
+	for i in range(0, num_samples):
+		var pos := i * bytes_per_sample
+		
+		var value : int
+		
+		match format:
+			FORMAT_8_BITS:
+				value = wav.data.decode_s8(pos)
+			FORMAT_16_BITS:
+				value = wav.data.decode_s16(pos)
+		
+		if stereo:
+			match format:
+				FORMAT_8_BITS:
+					value += wav.data.decode_s8(pos+1)
+				FORMAT_16_BITS:
+					value += wav.data.decode_s16(pos+2)
+			
+			value /= 2
+		
+		if value < min_value:
+			min_value = value
+			sample_pos = i
+		
+		if value > max_value:
+			max_value = value
+			sample_pos = i
+	
+	var max_t := sample_pos * 1.0 / wav.mix_rate
+	
+	#print("minmax: ", min_value, " ", max_value)
+	
+	return max_t
