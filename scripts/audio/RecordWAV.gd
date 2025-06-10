@@ -119,7 +119,7 @@ func _initialize_microphone() -> Error:
 	
 	# Check to see if the AudioStreamPlayer already exists somewhere
 	if _microphone_stream_player == null:
-		_microphone_stream_player = tree.root.find_child(_microphone_node_name)
+		_microphone_stream_player = tree.root.find_child(_microphone_node_name, false)
 	
 	# If it exists, we're good to go
 	if _microphone_stream_player and _microphone_stream_player.is_inside_tree(): 
@@ -141,7 +141,7 @@ func _cleanup_microphone():
 	# Another chance to find the node somewhere
 	if _microphone_stream_player == null:
 		var tree := Engine.get_main_loop() as SceneTree
-		_microphone_stream_player = tree.root.find_child(_microphone_node_name)
+		_microphone_stream_player = tree.root.find_child(_microphone_node_name, false)
 	
 	# Free the AudioStreamPlayer
 	if _microphone_stream_player and !_microphone_stream_player.is_queued_for_deletion():
