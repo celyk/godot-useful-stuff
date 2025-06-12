@@ -2,7 +2,7 @@
 class_name VertexHandles extends Node3D
 
 ## Add a new [VertexHandles] as a child of [MeshInstance3D] to modify it's mesh
-
+## [br][color=purple]Made by celyk[/color]
 
 
 # PUBLIC

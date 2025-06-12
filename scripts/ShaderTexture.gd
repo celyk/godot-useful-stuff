@@ -2,7 +2,8 @@
 class_name ShaderTexture extends ImageTexture
 
 ## A texture that takes a shader to generate the output. Useful for caching procedural textures
-
+## [br][color=purple]Made by celyk[/color]
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 #region Interface
 

@@ -2,6 +2,8 @@
 class_name RecordWAV extends AudioStreamWAV
 
 ## A Resource that allows recording from the primary microphone.
+## [br][color=purple]Made by celyk[/color]
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 ##
 ## RecordWAV adds a bus named "Record" to the audio bus layout. You are free to use the Audio tab to add additional effects to the bus!
 ## [br]
@@ -16,8 +18,6 @@ class_name RecordWAV extends AudioStreamWAV
 ## ...
 ## record_wav.stop_record()
 ## [/codeblock]
-##
-## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 # TODO
 # - Add record/stop buttons to mimick tape recorder interface

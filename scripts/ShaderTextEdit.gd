@@ -1,6 +1,8 @@
 class_name ShaderTextEdit extends TextEdit
 
 ## A text box for editing a shader at runtime.
+## [br][color=purple]Made by celyk[/color]
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 ## The shader which you want to edit.
 @export var target_shader : Shader

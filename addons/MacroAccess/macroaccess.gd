@@ -21,7 +21,6 @@ func clear_shader_macros() -> void:
 ## Updates the ShaderInclude resource, which triggers all shaders that depend on it to recompile!
 func _update():
 	var plugin_dir : String = get_script().resource_path.path_join("..").simplify_path()
-	print("plugin_dir")
 	var include_file : ShaderInclude = load(plugin_dir.path_join("macroaccess.gdshaderinc"))
 	
 	var new_code : String = ""

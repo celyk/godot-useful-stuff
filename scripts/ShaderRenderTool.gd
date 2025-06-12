@@ -1,6 +1,8 @@
 class_name ShaderRenderTool extends RefCounted
 
 ## Helper tool for rendering plain GLSL shaders to a texture via [RenderingDevice].
+## [br][color=purple]Made by celyk[/color]
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 ##
 ## Blah blah blah blah.
 ## [br]
