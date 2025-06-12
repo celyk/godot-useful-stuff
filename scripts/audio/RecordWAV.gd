@@ -196,7 +196,6 @@ func _cleanup_microphone():
 		_microphone_stream_player.queue_free()
 
 # FFT for tracking peaks in volume
-var _spectrum_analyzer : AudioEffectSpectrumAnalyzer
 var _spectrum_analyzer_instance : AudioEffectSpectrumAnalyzerInstance
 var _start_t_msec : int = 0
 func _initialize_meter() -> Error:
@@ -204,18 +203,34 @@ func _initialize_meter() -> Error:
 	if bus_idx == -1:
 		return ERR_UNCONFIGURED
 	
-	_spectrum_analyzer = AudioEffectSpectrumAnalyzer.new()
-	AudioServer.add_bus_effect(bus_idx, _spectrum_analyzer)
-	
-	_spectrum_analyzer_instance = AudioServer.get_bus_effect_instance(bus_idx, AudioServer.get_bus_effect_count(bus_idx)-1)
-	
-	var tree := Engine.get_main_loop() as SceneTree
-	tree.process_frame.connect(_record_process)
-	
 	# Reset these before recording
 	_start_t_msec = Time.get_ticks_msec()
 	_max_volume_t_msec = Time.get_ticks_msec()
 	_max_volume = Vector2(0,0)
+	
+	# Start processing the FFT
+	var tree := Engine.get_main_loop() as SceneTree
+	tree.process_frame.connect(_record_process)
+	
+	# Check to see if the effect already exists
+	var effects := _get_audio_effects(bus_idx, ["AudioEffectSpectrumAnalyzer"])
+	
+	if not effects.is_empty():
+		var effect : AudioEffectSpectrumAnalyzer = effects.back()
+		
+		# Search for the effect to get it's index
+		var effect_idx : int = _get_audio_effects(bus_idx).rfind(effect)
+		
+		_spectrum_analyzer_instance = AudioServer.get_bus_effect_instance(bus_idx, effect_idx)
+	else:
+		# No effect found. Initialize it
+		var _spectrum_analyzer = AudioEffectSpectrumAnalyzer.new()
+		AudioServer.add_bus_effect(bus_idx, _spectrum_analyzer)
+		
+		_spectrum_analyzer_instance = AudioServer.get_bus_effect_instance(bus_idx, AudioServer.get_bus_effect_count(bus_idx)-1)
+		
+		# Refresh the bus layout
+		AudioServer.bus_layout_changed.emit()
 	
 	return OK
 
@@ -268,3 +283,21 @@ func _get_bytes_per_sample(wav:AudioStreamWAV) -> int:
 		bytes_per_sample *= 2
 	
 	return bytes_per_sample
+
+# Get's audio bus effect objects with an optional type filter
+func _get_audio_effects(bus_idx:int, filter:=[]) -> Array[AudioEffect]:
+	var effects : Array[AudioEffect]
+	
+	for i in range(0, AudioServer.get_bus_effect_count(bus_idx)):
+		var effect : AudioEffect = AudioServer.get_bus_effect(bus_idx, i)
+		effects.append(effect)
+	
+	if filter.is_empty():
+		return effects
+	
+	var filtered_effects : Array[AudioEffect]
+	for effect in effects:
+		if effect.get_class() in filter:
+			filtered_effects.append(effect)
+	
+	return filtered_effects
