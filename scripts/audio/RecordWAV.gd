@@ -45,8 +45,10 @@ class_name RecordWAV extends AudioStreamWAV
 ## Automatically crops the recording around the peak
 @export var crop_to_peak := true
 
-## Controls how much padding is added before the peak of the recording
-@export var crop_padding := 0.1
+## Time in seconds subtracted from the start of the recording. Use negative values for padding around the volume peak
+@export var crop_begin := -0.1
+## Time in seconds subtracted from the end of the recording. Useful for avoiding unwanted sound
+@export var crop_end := 0.1
 
 func _validate_property(property: Dictionary):
 	# Prevent var recording from being saved true by PROPERTY_USAGE_STORAGE
@@ -105,12 +107,17 @@ func stop_record():
 	var wav_recording := _effect_record.get_recording()
 	
 	# Avoid cropping if there's too much data
-	if crop_to_peak:
-		var start_t := get_peak_t() - crop_padding
-		#print("Cropping at ", start_t)
+	if crop_begin != 0.0 or crop_end != 0.0:
+		var start_t : float = 0.0 + crop_begin
+		var end_t : float = wav_recording.get_length() - crop_end
 		
-		if start_t > 0.0:
-			_crop_wav(wav_recording, start_t)
+		if crop_to_peak:
+			start_t += get_peak_t()
+		
+		# Prevent negative crop start time. Unsure why it's needed
+		start_t = max(start_t, 0.0)
+		
+		_crop_wav(wav_recording, start_t, end_t)
 	
 	data = wav_recording.data
 	format = wav_recording.format
@@ -121,6 +128,10 @@ func stop_record():
 	_cleanup_microphone()
 	
 	emit_changed()
+
+## Get the time when the volume peaked
+func get_peak_t() -> float:
+	return (_max_volume_t_msec - _start_t_msec) / 1000.0
 
 
 # PRIVATE
@@ -220,12 +231,10 @@ func _record_process():
 	var volume := _spectrum_analyzer_instance.get_magnitude_for_frequency_range(0.0, 20000, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE)
 	#print(volume, _max_volume)
 	
-	if volume.x > _max_volume.x:
-		_max_volume.x = volume.x
+	var average := (volume.x + volume.y) / 2.0
+	if average > _max_volume.x:
+		_max_volume.x = average
 		_max_volume_t_msec = Time.get_ticks_msec()
-
-func get_peak_t() -> float:
-	return (_max_volume_t_msec - _start_t_msec) / 1000.0
 
 func _validate_audio_state():
 	var bus_idx := AudioServer.get_bus_index("Record")
