@@ -18,6 +18,7 @@ class_name RecordWAV extends AudioStreamWAV
 ## [/codeblock]
 
 # TODO
+# - Add record/stop buttons to mimick tape recorder interface
 # - Is there any way to detect the mic in real time?
 # - Is there any way to bypass the SceneTree?
 # - Is there any way to bypass the audio bus?
@@ -54,11 +55,11 @@ func start_record():
 	stereo = false
 	
 	if _initialize_bus() != OK:
-		printerr("Failed to initialize bus")
+		push_error("RecordWAV: ", "Failed to initialize bus")
 		return
 	
 	if _initialize_microphone() != OK:
-		printerr("Failed to initialize microphone")
+		push_error("RecordWAV: ", "Failed to initialize microphone")
 		_cleanup_microphone()
 		return
 	
@@ -71,11 +72,12 @@ func stop_record():
 	var wav_recording := _effect_record.get_recording()
 	
 	# Avoid cropping if there's too much data
-	if crop_to_peak and wav_recording.get_length() < 3.0:
-		var start_t := _find_peak(wav_recording) - crop_padding
-		_crop_wav(wav_recording, start_t)
-	else:
-		print_debug("Too much data, cropping avoided")
+	if crop_to_peak:
+		if wav_recording.get_length() > 3.0:
+			push_warning("RecordWAV: ", "Too much data, cropping avoided")
+		else:
+			var start_t := _find_peak(wav_recording) - crop_padding
+			_crop_wav(wav_recording, start_t)
 	
 	data = wav_recording.data
 	format = wav_recording.format
@@ -109,6 +111,8 @@ func _initialize_bus() -> Error:
 	# Refresh the bus layout
 	AudioServer.bus_layout_changed.emit()
 	AudioServer.bus_renamed.emit(bus_idx, "New Bus", "Record")
+	
+	push_warning("RecordWAV: ", "A bus for recording has been added to the audio bus layout")
 	
 	return OK
 
@@ -151,7 +155,7 @@ func _validate_audio_state():
 	var bus_idx := AudioServer.get_bus_index("Record")
 	if bus_idx == -1:
 		if _effect_record and _effect_record.is_recording_active():
-			push_error("Bus was removed during recording. Removing microphone now")
+			push_error("RecordWAV: ", "Bus was removed during recording. Removing microphone now")
 			_cleanup_microphone()
 
 func _crop_wav(wav:AudioStreamWAV, start_t:float, end_t:=-1.0):
@@ -164,17 +168,6 @@ func _crop_wav(wav:AudioStreamWAV, start_t:float, end_t:=-1.0):
 	else:
 		var end_sample_pos : int = end_t * wav.mix_rate
 		wav.data = wav.data.slice(start_sample_pos * byte_per_sample, end_sample_pos * byte_per_sample)
-
-'''
-func _instantiate_playback() -> AudioStreamPlayback:
-	var playback := self.instantiate_playback()
-	
-	var t := _find_peak(self)
-	print(t)
-	playback.start(t)
-	
-	return playback
-'''
 
 func _get_bytes_per_sample(wav:AudioStreamWAV) -> int:
 	var bytes_per_sample : int
