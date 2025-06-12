@@ -16,6 +16,8 @@ class_name RecordWAV extends AudioStreamWAV
 ## ...
 ## record_wav.stop_record()
 ## [/codeblock]
+##
+## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 # TODO
 # - Add record/stop buttons to mimick tape recorder interface
