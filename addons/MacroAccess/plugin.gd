@@ -3,7 +3,8 @@ extends EditorPlugin
 
 
 func _enter_tree():
-	add_autoload_singleton("MacroAccess", "res://addons/macroaccess/macroaccess.tscn")
+	var plugin_dir : String = get_script().resource_path.path_join("..").simplify_path()
+	add_autoload_singleton("MacroAccess", plugin_dir.path_join("macroaccess.tscn"))
 
 func _exit_tree():
 	remove_autoload_singleton("MacroAccess")
