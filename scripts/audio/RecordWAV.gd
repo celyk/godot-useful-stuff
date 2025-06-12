@@ -26,7 +26,10 @@ class_name RecordWAV extends AudioStreamWAV
 # - Make the system more resilient
 # - Normalize audio clip? Could delegate to another AudioStream
 
-#@export_tool_button("Pulse") var pulse : _
+# Some buttons for the inspector
+@export_tool_button("Record", "DebugSkipBreakpointsOff") var record_button := func(): recording = true
+@export_tool_button("Stop", "EditorPathSmoothHandle") var stop_button := func(): recording = false
+
 ## Just a variable that controls the recording. Still working on it
 @export var recording := false :
 	set(value):
@@ -44,6 +47,30 @@ class_name RecordWAV extends AudioStreamWAV
 
 ## Controls how much padding is added before the peak of the recording
 @export var crop_padding := 0.1
+
+func _validate_property(property: Dictionary):
+	# Prevent var recording from being saved true by PROPERTY_USAGE_STORAGE
+	if property.name == "recording":
+		property.usage = PROPERTY_USAGE_EDITOR
+	
+	# Hide some inhertited properties that clutter the UI
+	var hide_me := false
+	var disable_me := false
+	match property.name:
+		#"loop_mode": hide_me = true
+		#"loop_begin": hide_me = true
+		#"loop_end": hide_me = true
+		"format": disable_me = true
+		"mix_rate": disable_me = true
+		"stereo": disable_me = true
+	
+	if hide_me:
+		# Block the PROPERTY_USAGE_EDITOR bitflag
+		property.usage &= ~PROPERTY_USAGE_EDITOR
+	
+	if disable_me:
+		property.usage |= PROPERTY_USAGE_READ_ONLY
+
 
 func _init() -> void:
 	AudioServer.bus_layout_changed.connect(_validate_audio_state)
