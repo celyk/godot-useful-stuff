@@ -63,6 +63,12 @@ func start_record():
 		_cleanup_microphone()
 		return
 	
+	if _initialize_meter() != OK:
+		push_error("RecordWAV: ", "Failed to initialize volume meter")
+		_cleanup_microphone()
+		return
+	
+	
 	_effect_record.set_recording_active(true)
 
 ## Stop the recording
@@ -73,10 +79,10 @@ func stop_record():
 	
 	# Avoid cropping if there's too much data
 	if crop_to_peak:
-		if wav_recording.get_length() > 3.0:
-			push_warning("RecordWAV: ", "Too much data, cropping avoided")
-		else:
-			var start_t := _find_peak(wav_recording) - crop_padding
+		var start_t := get_peak_t() - crop_padding
+		#print("Cropping at ", start_t)
+		
+		if start_t > 0.0:
 			_crop_wav(wav_recording, start_t)
 	
 	data = wav_recording.data
@@ -151,6 +157,49 @@ func _cleanup_microphone():
 	if _microphone_stream_player and !_microphone_stream_player.is_queued_for_deletion():
 		_microphone_stream_player.queue_free()
 
+# FFT for tracking peaks in volume
+var _spectrum_analyzer : AudioEffectSpectrumAnalyzer
+var _spectrum_analyzer_instance : AudioEffectSpectrumAnalyzerInstance
+var _start_t_msec : int = 0
+func _initialize_meter() -> Error:
+	var bus_idx := AudioServer.get_bus_index("Record")
+	if bus_idx == -1:
+		return ERR_UNCONFIGURED
+	
+	_spectrum_analyzer = AudioEffectSpectrumAnalyzer.new()
+	AudioServer.add_bus_effect(bus_idx, _spectrum_analyzer)
+	
+	_spectrum_analyzer_instance = AudioServer.get_bus_effect_instance(bus_idx, AudioServer.get_bus_effect_count(bus_idx)-1)
+	
+	var tree := Engine.get_main_loop() as SceneTree
+	tree.process_frame.connect(_record_process)
+	
+	# Reset these before recording
+	_start_t_msec = Time.get_ticks_msec()
+	_max_volume_t_msec = Time.get_ticks_msec()
+	_max_volume = Vector2(0,0)
+	
+	return OK
+
+var _max_volume : Vector2
+var _max_volume_t_msec := 0
+func _record_process():
+	# Disconnect this function if recording is over
+	if _effect_record and (not _effect_record.is_recording_active()):
+		var tree := Engine.get_main_loop() as SceneTree
+		tree.process_frame.disconnect(_record_process)
+		return
+	
+	var volume := _spectrum_analyzer_instance.get_magnitude_for_frequency_range(0.0, 20000, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE)
+	#print(volume, _max_volume)
+	
+	if volume.x > _max_volume.x:
+		_max_volume.x = volume.x
+		_max_volume_t_msec = Time.get_ticks_msec()
+
+func get_peak_t() -> float:
+	return (_max_volume_t_msec - _start_t_msec) / 1000.0
+
 func _validate_audio_state():
 	var bus_idx := AudioServer.get_bus_index("Record")
 	if bus_idx == -1:
@@ -183,57 +232,3 @@ func _get_bytes_per_sample(wav:AudioStreamWAV) -> int:
 		bytes_per_sample *= 2
 	
 	return bytes_per_sample
-
-
-# JANK
-
-# Finds the time in seconds of the loudest point in the sound
-func _find_peak(wav:AudioStreamWAV) -> float:
-	if wav.format > 1: return 0.0
-	
-	var min_value := 2**16
-	var max_value := -2**16
-	
-	#var difference := 2**31
-	
-	var sample_pos := 0
-	
-	var bytes_per_sample : int = _get_bytes_per_sample(wav)
-	
-	var num_samples := wav.data.size() / bytes_per_sample
-	
-	
-	
-	for i in range(0, num_samples):
-		var pos := i * bytes_per_sample
-		
-		var value : int
-		
-		match format:
-			FORMAT_8_BITS:
-				value = wav.data.decode_s8(pos)
-			FORMAT_16_BITS:
-				value = wav.data.decode_s16(pos)
-		
-		if stereo:
-			match format:
-				FORMAT_8_BITS:
-					value += wav.data.decode_s8(pos+1)
-				FORMAT_16_BITS:
-					value += wav.data.decode_s16(pos+2)
-			
-			value /= 2
-		
-		if value < min_value:
-			min_value = value
-			sample_pos = i
-		
-		if value > max_value:
-			max_value = value
-			sample_pos = i
-	
-	var max_t := sample_pos * 1.0 / wav.mix_rate
-	
-	#print("minmax: ", min_value, " ", max_value)
-	
-	return max_t
