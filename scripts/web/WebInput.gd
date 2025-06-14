@@ -86,15 +86,20 @@ static func _get_js_vector(name:String) -> Vector3:
 	
 	return Vector3(x, y, z);
 
+static var _js_callback : JavaScriptObject
 static func _init_sensors():
 	print("Initializing sensors")
 	JavaScriptBridge.eval(_js_code, true)
 	
-	var js_screen : JavaScriptObject = JavaScriptBridge.create_object("screen")
-	js_screen.orientation.onchange = JavaScriptBridge.create_callback(_on_orientation_changed)
+	_cached_orientation = JavaScriptBridge.eval("screen_orientation", true)
+	
+	var js_screen : JavaScriptObject = JavaScriptBridge.get_interface("screen")
+	
+	_js_callback = JavaScriptBridge.create_callback(_on_orientation_changed)
+	js_screen.orientation.onchange = _js_callback
 
-static func _on_orientation_changed(event : JavaScriptObject):
-	_cached_orientation = event.target.type
+static func _on_orientation_changed(args:Array):
+	_cached_orientation = args[0].target.type
 
 const _js_code := '''
 var rotation = { x: 0, y: 0, z: 0 };
@@ -128,10 +133,6 @@ function registerMotionListener() {
 		rotation.x = event.beta;
 		rotation.y = event.gamma;
 		rotation.z = event.alpha;
-	}
-	
-	screen.orientation.onchange = function(event) {
-		screen_orientation = event.target.type;
 	}
 }
 
