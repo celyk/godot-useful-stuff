@@ -15,16 +15,31 @@ static func request_sensors() -> void:
 
 static func get_rotation() -> Vector3:
 	if !OS.has_feature("web"): return Vector3()
-	return _get_js_vector("rotation")
-	return _browser_to_godot_coordinates(_get_js_vector("rotation"))
+		
+	var v := _get_js_vector("rotation")
+	
+	# deg_to_rad()
+	v *= TAU / 360.0
+	
+	return v
 
 static func get_accelerometer() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_accelerometer()
-	return _browser_to_godot_coordinates(_get_js_vector("acceleration"))
+	var v := _get_js_vector("acceleration")
+	
+	v = _reorient_sensor_vector(v, DisplayServer.SCREEN_REVERSE_PORTRAIT)
+	v = _browser_to_godot_coordinates(v)
+	
+	return v
 
 static func get_gravity() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_gravity()
-	return _browser_to_godot_coordinates(_get_js_vector("gravity"))
+	var v := _get_js_vector("gravity")
+	
+	v = _reorient_sensor_vector(v, DisplayServer.SCREEN_REVERSE_PORTRAIT)
+	v = _browser_to_godot_coordinates(v)
+	
+	return v
 
 static func get_gyroscope() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_gyroscope()
@@ -33,14 +48,17 @@ static func get_gyroscope() -> Vector3:
 	# deg_to_rad()
 	v *= TAU / 360.0
 	
+	# Why??
+	v = Vector3(-v.x, v.z, v.y)
+	
 	# Reorient the vector to support all the browsers...
 	v = _browser_to_godot_coordinates(v)
 	
 	return v
 
 static func _browser_to_godot_coordinates(v : Vector3) -> Vector3:
-	if OS.has_feature("web_ios"):
-		v = Vector3(-v.x, v.z, v.y)
+	#if OS.has_feature("web_ios") || true:
+	#	v = Vector3(-v.x, v.z, v.y)
 	
 	var orientation := _screen_get_orientation()
 	v = _reorient_sensor_vector(v, orientation)
@@ -52,15 +70,17 @@ static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrienta
 		DisplayServer.SCREEN_LANDSCAPE:
 			v = Vector3(v.x, v.y, v.z)
 		DisplayServer.SCREEN_PORTRAIT:
-			v = Vector3(-v.y, v.x, v.z)
-		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
-			v = Vector3(-v.x, v.y, -v.z)
-		DisplayServer.SCREEN_SENSOR_PORTRAIT:
 			v = Vector3(v.y, -v.x, v.z)
+		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
+			v = Vector3(-v.x, -v.y, v.z)
+		DisplayServer.SCREEN_REVERSE_PORTRAIT:
+			v = Vector3(-v.y, v.x, v.z)
 	
 	return v
 
 static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
+	if !OS.has_feature("web"): return DisplayServer.SCREEN_LANDSCAPE
+		
 	var type : String = JavaScriptBridge.eval("screen_orientation", true);
 	
 	match type:
@@ -94,7 +114,7 @@ var gravity = { x: 0, y: 0, z: 0 };
 var gyroscope = { x: 0, y: 0, z: 0 };
 var screen_orientation = ""
 
-# Not supported by the web
+// Not supported by the web
 //var magnetometer = { x: 0, y: 0, z: 0 };
 
 
@@ -129,6 +149,8 @@ function registerMotionListener() {
 // Request permission for iOS 13+ devices
 console.log("Requesting sensors");
   function onClick() {
+	screen_orientation = screen.orientation.type;
+	
 	// feature detect
 	if (typeof DeviceMotionEvent.requestPermission === 'function') {
 	  DeviceMotionEvent.requestPermission()
