@@ -65,12 +65,9 @@ static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrienta
 	
 	return v
 
+static var _cached_orientation := ""
 static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
-	if !OS.has_feature("web"): return DisplayServer.SCREEN_LANDSCAPE
-		
-	var type : String = JavaScriptBridge.eval("screen_orientation", true);
-	
-	match type:
+	match _cached_orientation:
 		"portrait-primary":
 			return DisplayServer.SCREEN_PORTRAIT
 		"portrait-secondary":
@@ -80,7 +77,7 @@ static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
 		"landscape-secondary":
 			return DisplayServer.SCREEN_REVERSE_LANDSCAPE
 	
-	return DisplayServer.SCREEN_LANDSCAPE 
+	return DisplayServer.SCREEN_PORTRAIT 
 
 static func _get_js_vector(name:String) -> Vector3:
 	var x : float = JavaScriptBridge.eval(name+".x", true);
@@ -92,7 +89,12 @@ static func _get_js_vector(name:String) -> Vector3:
 static func _init_sensors():
 	print("Initializing sensors")
 	JavaScriptBridge.eval(_js_code, true)
+	
+	var js_screen : JavaScriptObject = JavaScriptBridge.create_object("screen")
+	js_screen.orientation.onchange = JavaScriptBridge.create_callback(_on_orientation_changed)
 
+static func _on_orientation_changed(event : JavaScriptObject):
+	_cached_orientation = event.target.type
 
 const _js_code := '''
 var rotation = { x: 0, y: 0, z: 0 };
