@@ -13,6 +13,11 @@ extends Node
 static func request_sensors() -> void:
 	_init_sensors()
 
+static func get_rotation() -> Vector3:
+	if !OS.has_feature("web"): return Vector3()
+	return _get_js_vector("rotation")
+	return _browser_to_godot_coordinates(_get_js_vector("rotation"))
+
 static func get_accelerometer() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_accelerometer()
 	return _browser_to_godot_coordinates(_get_js_vector("acceleration"))
@@ -47,11 +52,11 @@ static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrienta
 		DisplayServer.SCREEN_LANDSCAPE:
 			v = Vector3(v.x, v.y, v.z)
 		DisplayServer.SCREEN_PORTRAIT:
-			v = Vector3(-v.z, v.y, v.x)
+			v = Vector3(-v.y, v.x, v.z)
 		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
 			v = Vector3(-v.x, v.y, -v.z)
 		DisplayServer.SCREEN_SENSOR_PORTRAIT:
-			v = Vector3(v.z, v.y, -v.x)
+			v = Vector3(v.y, -v.x, v.z)
 	
 	return v
 
@@ -83,8 +88,8 @@ static func _init_sensors():
 
 
 const _js_code := '''
-var acceleration = { x: 0, y: 0, z: 0 };
 var rotation = { x: 0, y: 0, z: 0 };
+var acceleration = { x: 0, y: 0, z: 0 };
 var gravity = { x: 0, y: 0, z: 0 };
 var gyroscope = { x: 0, y: 0, z: 0 };
 var screen_orientation = ""
