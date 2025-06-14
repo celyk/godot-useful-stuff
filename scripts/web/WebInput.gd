@@ -7,11 +7,9 @@ extends Node
 
 
 # TODO
-# - Handle orientations
 # - Test different browsers
-# - Expose orientation
 
-
+## Requests and initializes the sensors. Required by iOS to prompt user for permission to access sensors
 static func request_sensors() -> void:
 	_init_sensors()
 
@@ -34,10 +32,6 @@ static func get_gyroscope() -> Vector3:
 	v = _browser_to_godot_coordinates(v)
 	
 	return v
-#
-#static func get_magnetometer() -> Vector3:
-	#if !OS.has_feature("web"): return Input.get_magnetometer()
-	#return _browser_to_godot_coordinates(_get_js_vector("magnetometer"))
 
 static func _browser_to_godot_coordinates(v : Vector3) -> Vector3:
 	if OS.has_feature("web_ios"):
@@ -93,8 +87,11 @@ var acceleration = { x: 0, y: 0, z: 0 };
 var rotation = { x: 0, y: 0, z: 0 };
 var gravity = { x: 0, y: 0, z: 0 };
 var gyroscope = { x: 0, y: 0, z: 0 };
-//var magnetometer = { x: 0, y: 0, z: 0 };
 var screen_orientation = ""
+
+# Not supported by the web
+//var magnetometer = { x: 0, y: 0, z: 0 };
+
 
 function registerMotionListener() {
 	window.ondevicemotion = function(event) {
