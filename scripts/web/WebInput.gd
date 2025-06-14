@@ -123,9 +123,9 @@ function registerMotionListener() {
 	}
 	
 	window.ondeviceorientation = function(event) {
-		rotation.x = event.alpha;
-		rotation.y = event.beta;
-		rotation.z = event.gamma;
+		rotation.x = event.beta;
+		rotation.y = event.gamma;
+		rotation.z = event.alpha;
 	}
 	
 	screen.orientation.onchange = function(event) {
