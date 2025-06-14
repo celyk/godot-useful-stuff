@@ -25,21 +25,11 @@ static func get_rotation() -> Vector3:
 
 static func get_accelerometer() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_accelerometer()
-	var v := _get_js_vector("acceleration")
-	
-	v = _reorient_sensor_vector(v, DisplayServer.SCREEN_REVERSE_PORTRAIT)
-	v = _browser_to_godot_coordinates(v)
-	
-	return v
+	return _browser_to_godot_coordinates(_get_js_vector("acceleration"))
 
 static func get_gravity() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_gravity()
-	var v := _get_js_vector("gravity")
-	
-	v = _reorient_sensor_vector(v, DisplayServer.SCREEN_REVERSE_PORTRAIT)
-	v = _browser_to_godot_coordinates(v)
-	
-	return v
+	return _browser_to_godot_coordinates(_get_js_vector("gravity"))
 
 static func get_gyroscope() -> Vector3:
 	if !OS.has_feature("web"): return Input.get_gyroscope()
@@ -47,9 +37,6 @@ static func get_gyroscope() -> Vector3:
 	
 	# deg_to_rad()
 	v *= TAU / 360.0
-	
-	# Why??
-	v = Vector3(-v.x, v.z, v.y)
 	
 	# Reorient the vector to support all the browsers...
 	v = _browser_to_godot_coordinates(v)
@@ -68,13 +55,13 @@ static func _browser_to_godot_coordinates(v : Vector3) -> Vector3:
 static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrientation = 0) -> Vector3:
 	match i:
 		DisplayServer.SCREEN_LANDSCAPE:
-			v = Vector3(v.x, v.y, v.z)
-		DisplayServer.SCREEN_PORTRAIT:
-			v = Vector3(v.y, -v.x, v.z)
-		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
-			v = Vector3(-v.x, -v.y, v.z)
-		DisplayServer.SCREEN_REVERSE_PORTRAIT:
 			v = Vector3(-v.y, v.x, v.z)
+		DisplayServer.SCREEN_PORTRAIT:
+			v = Vector3(v.x, v.y, v.z) # Portrait is the default orientation, even on iPad
+		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
+			v = Vector3(v.y, -v.x, v.z)
+		DisplayServer.SCREEN_REVERSE_PORTRAIT:
+			v = Vector3(-v.x, -v.y, v.z)
 	
 	return v
 
@@ -130,15 +117,15 @@ function registerMotionListener() {
 		gravity.y = event.accelerationIncludingGravity.y;
 		gravity.z = event.accelerationIncludingGravity.z;
 		
-		gyroscope.x = event.rotationRate.beta;
-		gyroscope.y = event.rotationRate.gamma;
-		gyroscope.z = event.rotationRate.alpha;
+		gyroscope.x = event.rotationRate.alpha;
+		gyroscope.y = event.rotationRate.beta;
+		gyroscope.z = event.rotationRate.gamma;
 	}
 	
 	window.ondeviceorientation = function(event) {
-		rotation.x = event.beta;
-		rotation.y = event.gamma;
-		rotation.z = event.alpha;
+		rotation.x = event.alpha;
+		rotation.y = event.beta;
+		rotation.z = event.gamma;
 	}
 	
 	screen.orientation.onchange = function(event) {
