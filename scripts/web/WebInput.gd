@@ -11,6 +11,8 @@ extends Node
 
 ## Requests and initializes the sensors. Required by iOS to prompt user for permission to access sensors
 static func request_sensors() -> void:
+	if !OS.has_feature("web"): return
+	
 	_init_sensors()
 
 static func get_rotation() -> Vector3:
@@ -67,6 +69,8 @@ static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrienta
 
 static var _cached_orientation := ""
 static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
+	if !OS.has_feature("web"): return DisplayServer.screen_get_orientation()
+	
 	match _cached_orientation:
 		"portrait-primary":
 			return DisplayServer.SCREEN_PORTRAIT
