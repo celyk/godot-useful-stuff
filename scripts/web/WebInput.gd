@@ -79,12 +79,13 @@ static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
 	
 	return DisplayServer.SCREEN_PORTRAIT 
 
+static var _cached_js_objects := {}
 static func _get_js_vector(name:String) -> Vector3:
-	var x : float = JavaScriptBridge.eval(name+".x", true);
-	var y : float = JavaScriptBridge.eval(name+".y", true);
-	var z : float = JavaScriptBridge.eval(name+".z", true);
+	if not _cached_js_objects.has(name):
+		_cached_js_objects[name] = JavaScriptBridge.get_interface(name)
 	
-	return Vector3(x, y, z);
+	var js_object : JavaScriptObject = _cached_js_objects[name]
+	return Vector3(js_object.x, js_object.y, js_object.z)
 
 static var _js_callback : JavaScriptObject
 static func _init_sensors():
