@@ -13,10 +13,13 @@ extends Node
 static func request_sensors() -> void:
 	if !OS.has_feature("web"): return
 	
-	_init_sensors()
+	if _init_sensors() != OK:
+		return
+	
+	_is_initialized = true
 
 static func get_rotation() -> Vector3:
-	if !OS.has_feature("web"): return Vector3()
+	if not _is_initialized: return Vector3()
 		
 	var v := _get_js_vector("rotation")
 	
@@ -26,15 +29,16 @@ static func get_rotation() -> Vector3:
 	return v
 
 static func get_accelerometer() -> Vector3:
-	if !OS.has_feature("web"): return Input.get_accelerometer()
+	if not _is_initialized: return Input.get_accelerometer()
 	return _browser_to_godot_coordinates(_get_js_vector("acceleration"))
 
 static func get_gravity() -> Vector3:
-	if !OS.has_feature("web"): return Input.get_gravity()
+	if not _is_initialized: return Input.get_gravity()
 	return _browser_to_godot_coordinates(_get_js_vector("gravity"))
 
 static func get_gyroscope() -> Vector3:
-	if !OS.has_feature("web"): return Input.get_gyroscope()
+	if not _is_initialized: return Input.get_gyroscope()
+	
 	var v := _get_js_vector("gyroscope")
 	
 	# deg_to_rad()
@@ -69,7 +73,7 @@ static func _reorient_sensor_vector(v : Vector3, i : DisplayServer.ScreenOrienta
 
 static var _cached_orientation := ""
 static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
-	if !OS.has_feature("web"): return DisplayServer.screen_get_orientation()
+	if not _is_initialized: return DisplayServer.screen_get_orientation()
 	
 	match _cached_orientation:
 		"portrait-primary":
@@ -85,14 +89,17 @@ static func _screen_get_orientation() -> DisplayServer.ScreenOrientation:
 
 static var _cached_js_objects := {}
 static func _get_js_vector(name:String) -> Vector3:
-	if not _cached_js_objects.has(name):
+	if _cached_js_objects.get(name) == null:
 		_cached_js_objects[name] = JavaScriptBridge.get_interface(name)
 	
 	var js_object : JavaScriptObject = _cached_js_objects[name]
 	return Vector3(js_object.x, js_object.y, js_object.z)
 
+static var _is_initialized := false
 static var _js_callback : JavaScriptObject
-static func _init_sensors():
+static func _init_sensors() -> Error:
+	if !OS.has_feature("web"): return ERR_UNAVAILABLE
+	
 	print("Initializing sensors")
 	JavaScriptBridge.eval(_js_code, true)
 	
@@ -102,6 +109,8 @@ static func _init_sensors():
 	
 	_js_callback = JavaScriptBridge.create_callback(_on_orientation_changed)
 	js_screen.orientation.onchange = _js_callback
+	
+	return OK
 
 static func _on_orientation_changed(args:Array):
 	_cached_orientation = args[0].target.type
