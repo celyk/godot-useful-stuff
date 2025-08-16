@@ -9,6 +9,8 @@ class_name Feedback extends SubViewport
 ## [br]
 ## [br]It automatically takes the size of the parent viewport.
 
+## Make Feedback use 2D rendering. Can make 8-bit colors more consistent
+@export var only_2d := false
 
 # PRIVATE
 
@@ -101,7 +103,7 @@ func _init_blit() -> void:
 	_material = ShaderMaterial.new()
 	_material.resource_local_to_scene = true
 	_material.shader = Shader.new()
-	_material.shader.code = _blit_shader_code
+	_material.shader.code = _blit_shader_code_spatial
 	
 	RenderingServer.mesh_surface_set_material(_p_base, 0, _material.get_rid())
 	
@@ -120,7 +122,7 @@ func _cleanup_blit() -> void:
 
 # DATA
 
-const _blit_shader_code = "
+const _blit_shader_code_spatial = '''
 		shader_type spatial;
 		
 		render_mode cull_disabled, ambient_light_disabled, depth_draw_never;
@@ -155,7 +157,26 @@ const _blit_shader_code = "
 			
 			ALPHA = samp.a;
 		}
-		"
+		'''
+
+
+const _blit_shader_code_canvas_item = '''
+		shader_type canvas_item;
+		
+		render_mode blend_disabled;
+		
+		uniform sampler2D tex : source_color, filter_nearest;
+		
+		void vertex(){
+			POSITION = MODEL_MATRIX * vec4(VERTEX,1);
+			UV.y = 1.0 - UV.y;
+		}
+		
+		void fragment(){
+			vec4 samp = textureLod(tex, UV, 0.0);
+			COLOR = samp;
+		}
+'''
 
 
 # JANK 
