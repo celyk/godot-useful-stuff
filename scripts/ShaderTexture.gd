@@ -29,6 +29,17 @@ class_name ShaderTexture extends ImageTexture
 		use_texture_size = value
 		_update_size()
 
+@export var live := false :
+	set(value):
+		live = value
+		
+		if not _initialized: return
+		
+		if live:
+			RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_ALWAYS)
+		else:
+			RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_DISABLED)
+
 @export_tool_button("Save", "Callable") var save_pulse = save_output
 @export_tool_button("Load last", "Callable") var load_last_pulse = load_last
 
@@ -51,6 +62,7 @@ class_name ShaderTexture extends ImageTexture
 
 func generate() -> void:
 	if not _initialized: return
+	if live: return
 	
 	RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_ONCE)
 	
