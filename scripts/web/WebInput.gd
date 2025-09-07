@@ -30,11 +30,11 @@ static func get_rotation() -> Vector3:
 
 static func get_accelerometer() -> Vector3:
 	if not _is_initialized: return Input.get_accelerometer()
-	return _browser_to_godot_coordinates(_get_js_vector("acceleration"))
+	return -_browser_to_godot_coordinates(_get_js_vector("acceleration"))
 
 static func get_gravity() -> Vector3:
 	if not _is_initialized: return Input.get_gravity()
-	return _browser_to_godot_coordinates(_get_js_vector("gravity"))
+	return -_browser_to_godot_coordinates(_get_js_vector("gravity"))
 
 static func get_gyroscope() -> Vector3:
 	if not _is_initialized: return Input.get_gyroscope()
