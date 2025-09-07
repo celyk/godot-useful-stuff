@@ -134,9 +134,16 @@ function registerMotionListener() {
 		acceleration.y = event.accelerationIncludingGravity.y;
 		acceleration.z = event.accelerationIncludingGravity.z;
 		
-		gravity.x = event.accelerationIncludingGravity.x - event.acceleration.x;
-		gravity.y = event.accelerationIncludingGravity.y - event.acceleration.y;
-		gravity.z = event.accelerationIncludingGravity.z - event.acceleration.z;
+		// Have to ammend iOS because it doesn't conform to the specification...
+		if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+			acceleration.x = -acceleration.x;
+			acceleration.y = -acceleration.y;
+			acceleration.z = -acceleration.z;
+		}
+		
+		gravity.x = acceleration.x - event.acceleration.x;
+		gravity.y = acceleration.y - event.acceleration.y;
+		gravity.z = acceleration.z - event.acceleration.z;
 		
 		gyroscope.x = event.rotationRate.alpha;
 		gyroscope.y = event.rotationRate.beta;
