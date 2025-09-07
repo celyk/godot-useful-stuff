@@ -134,9 +134,9 @@ function registerMotionListener() {
 		acceleration.y = event.accelerationIncludingGravity.y;
 		acceleration.z = event.accelerationIncludingGravity.z;
 		
-		gravity.x = event.accelerationIncludingGravity.x;
-		gravity.y = event.accelerationIncludingGravity.y;
-		gravity.z = event.accelerationIncludingGravity.z;
+		gravity.x = event.accelerationIncludingGravity.x - event.acceleration.x;
+		gravity.y = event.accelerationIncludingGravity.y - event.acceleration.y;
+		gravity.z = event.accelerationIncludingGravity.z - event.acceleration.z;
 		
 		gyroscope.x = event.rotationRate.alpha;
 		gyroscope.y = event.rotationRate.beta;
