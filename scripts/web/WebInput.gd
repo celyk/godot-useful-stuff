@@ -125,6 +125,19 @@ var screen_orientation = ""
 // Not supported by the web
 //var magnetometer = { x: 0, y: 0, z: 0 };
 
+// https://stackoverflow.com/a/9039885
+function is_platform_iOS() {
+  return [
+    'iPad Simulator',
+    'iPhone Simulator',
+    'iPod Simulator',
+    'iPad',
+    'iPhone',
+    'iPod'
+  ].includes(navigator.platform)
+  // iPad on iOS 13 detection
+  || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+}
 
 function registerMotionListener() {
 	window.ondevicemotion = function(event) {
@@ -135,7 +148,7 @@ function registerMotionListener() {
 		acceleration.z = event.accelerationIncludingGravity.z;
 		
 		// Have to ammend iOS because it doesn't conform to the specification...
-		if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+		if (is_platform_iOS()) {
 			acceleration.x = -acceleration.x;
 			acceleration.y = -acceleration.y;
 			acceleration.z = -acceleration.z;
