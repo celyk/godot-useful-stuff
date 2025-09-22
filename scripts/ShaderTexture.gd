@@ -40,6 +40,10 @@ class_name ShaderTexture extends ImageTexture
 		else:
 			RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_DISABLED)
 
+@export var regenerate_on_change := true :
+	set(value):
+		regenerate_on_change = value
+	
 @export_tool_button("Save", "Callable") var save_pulse = save_output
 @export_tool_button("Load last", "Callable") var load_last_pulse = load_last
 
@@ -120,6 +124,9 @@ func _init() -> void:
 func _update_material():
 	RenderingServer.canvas_item_set_material(_p_canvas_item, material.get_rid())
 	
+	_safe_connect(material, "changed", _on_shader_changed)
+	_safe_connect(material.shader, "changed", _on_shader_changed)
+	
 	generate()
 
 func _update_size():
@@ -142,6 +149,11 @@ func _update_transparency():
 
 func _update_input():
 	_update_rect()
+
+func _on_shader_changed():
+	if regenerate_on_change:
+		print("regenerate_on_change Time to change")
+		generate()
 
 #endregion
 
@@ -224,3 +236,8 @@ func _find_unique_filename(path : String):
 		return new_path
 	
 	return ERR_FILE_NOT_FOUND
+
+func _safe_connect(obj : Object, sig: StringName, callable : Callable, flags : int = 0) -> void:
+	if obj && !obj.is_connected(sig, callable): obj.connect(sig, callable, flags)
+func _safe_disconnect(obj : Object, sig: StringName, callable : Callable) -> void:
+	if obj && obj.is_connected(sig, callable): obj.disconnect(sig, callable)
