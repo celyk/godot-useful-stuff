@@ -167,7 +167,7 @@ func _render_callback(_effect_callback_type : int, render_data : RenderData):
 	else:
 		draw_list = _RD.call("draw_list_begin",
 			_p_framebuffer,
-			_RD.DRAW_IGNORE_ALL,
+			_RD.DRAW_DEFAULT_ALL,
 			_clear_colors,
 			1.0, 
 			0, 
