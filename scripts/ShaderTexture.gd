@@ -34,6 +34,12 @@ class_name ShaderTexture extends ImageTexture
 		transparency = value
 		_update_transparency()
 
+## Enable writing of the alpha channel
+@export var mipmaps := true :
+	set(value):
+		mipmaps = value
+		_update_mipmaps()
+
 ## Set [size] to match the input texture. Helpful for processing textures
 @export var use_texture_size := false :
 	set(value):
@@ -167,6 +173,9 @@ func _update_transparency():
 	
 	generate()
 
+func _update_mipmaps():
+	generate()
+
 func _update_input():
 	_update_rect()
 
@@ -218,7 +227,11 @@ func _blit_viewport():
 	if not p_tex.is_valid(): return
 	
 	var img := RenderingServer.texture_2d_get(p_tex)
-	if not p_tex.is_valid(): return
+	#if not img.is_valid(): return
+	
+	if mipmaps:
+		img.generate_mipmaps()
+	
 	set_image(img)
 
 func _notification(what: int) -> void:
