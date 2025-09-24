@@ -1,34 +1,46 @@
 @tool
 class_name ShaderTexture extends ImageTexture
 
-## A texture that takes a shader to generate the output. Useful for caching procedural textures
+## A texture that takes a canvas_item shader to generate the output. Useful for caching procedural textures
 ## [br][color=purple]Made by celyk[/color]
 ## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
+
+# UX design flaws:
+# - Expensive shaders can still run in the inspector preview and kill FPS
+# - Nested Texture2D is incredibly hard to navigate. Needs a node graph?
+
+
 #region Interface
 
+## Click me to render the texture based on the current shader code
 @export_tool_button("Generate", "Callable") var generate_pulse = generate
 
+## The size of the Texture2D to be generated
 @export var size := Vector2i(128,128) :
 	set(value):
 		size = value
 		_update_size()
 
+## Enable HDR to give more precision to each channel
 @export var hdr := false :
 	set(value):
 		hdr = value
 		_update_hdr()
 
+## Enable writing of the alpha channel
 @export var transparency := true :
 	set(value):
 		transparency = value
 		_update_transparency()
 
+## Set [size] to match the input texture. Helpful for processing textures
 @export var use_texture_size := false :
 	set(value):
 		use_texture_size = value
 		_update_size()
 
+## Rerender the shader once every frame [WIP]
 @export var live := false :
 	set(value):
 		live = value
@@ -40,18 +52,23 @@ class_name ShaderTexture extends ImageTexture
 		else:
 			RenderingServer.viewport_set_update_mode(_p_viewport, RenderingServer.VIEWPORT_UPDATE_DISABLED)
 
+## Automatically regenerate the Texture2D when the shader has changed. Otherwise it must be manually generated
 @export var regenerate_on_change := true :
 	set(value):
 		regenerate_on_change = value
-	
+
+## Save the current image to a file [WIP]
 @export_tool_button("Save", "Callable") var save_pulse = save_output
+## Load the previously saved image into the input texture slot [WIP]
 @export_tool_button("Load last", "Callable") var load_last_pulse = load_last
 
+## The primary texture slot. Maps to TEXTURE in canvas_item shaders
 @export var input_texture : Texture2D :
 	set(value):
 		input_texture = value
 		_update_input()
 
+## The ShaderMaterial with your custom shader that you want to be rendered
 @export var material : ShaderMaterial :
 	set(value):
 		material = value
@@ -64,6 +81,7 @@ class_name ShaderTexture extends ImageTexture
 
 #region Methods
 
+## Render the texture based on the current shader code
 func generate() -> void:
 	if not _initialized: return
 	if live: return
@@ -75,6 +93,7 @@ func generate() -> void:
 	
 	_blit_viewport()
 
+## Call to prompt the user to save the texture as a png [WIP]
 func save_output() -> void:
 	if input_texture == null: return
 	
@@ -102,6 +121,7 @@ func save_output() -> void:
 		
 		dialog.popup_file_dialog()
 
+## Call to load the previously saved texture into the input texture slot [WIP]
 func load_last() -> void:
 	pass
 
