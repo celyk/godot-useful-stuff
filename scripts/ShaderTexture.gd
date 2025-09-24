@@ -34,11 +34,17 @@ class_name ShaderTexture extends ImageTexture
 		transparency = value
 		_update_transparency()
 
-## Enable writing of the alpha channel
+## Enable mipmap generation
 @export var mipmaps := true :
 	set(value):
 		mipmaps = value
 		_update_mipmaps()
+
+## Enable mipmap generation [WIP]. For custom mipmap generation, use floor(UV.x) to check mip level in the fragment shader
+@export var custom_mipmaps := false :
+	set(value):
+		custom_mipmaps = value
+		_update_custom_mipmaps()
 
 ## Set [size] to match the input texture. Helpful for processing textures
 @export var use_texture_size := false :
@@ -174,6 +180,9 @@ func _update_transparency():
 	generate()
 
 func _update_mipmaps():
+	generate()
+
+func _update_custom_mipmaps():
 	generate()
 
 func _update_input():
