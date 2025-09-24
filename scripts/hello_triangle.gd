@@ -18,6 +18,8 @@ class_name HelloTriangleEffect extends CompositorEffect
 @export var target_node_unique_name : String
 var transform : Transform3D
 
+## Set to true to support XR
+const vr_rendering_support := false
 
 # PRIVATE
 
@@ -34,11 +36,26 @@ var _clear_colors := PackedColorArray([Color.DARK_BLUE])
 
 func _init():
 	effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
-	
+
 	_RD = RenderingServer.get_rendering_device()
 	RenderingServer.call_on_render_thread(_initialize_render)
 
+## Inject preprocessor flags in shader code to help compile variants. In this case to conditionally support VR rendering
+func _insert_shader_macros(source : String) -> String:
+	var macros : String
+	
+	if vr_rendering_support:
+		# Allows the shader to work in VR multiview rendering by enabling the GL_EXT_multiview extension
+		macros += "#define USE_MULTIVIEW\n"
+	
+	source = source.replace("//INSERT_MACROS", macros)
+	
+	return source
+
 func _compile_shader(source_fragment : String = _default_source_fragment, source_vertex : String = _default_source_vertex) -> RID:
+	source_fragment = _insert_shader_macros(source_fragment)
+	source_vertex = _insert_shader_macros(source_vertex)
+	
 	var src := RDShaderSource.new()
 	src.source_fragment = source_fragment
 	src.source_vertex = source_vertex
@@ -67,7 +84,6 @@ func _initialize_render(view_count := 1):
 	# If we got a framebuffer already, just get that format
 	if _p_framebuffer.is_valid():
 		_framebuffer_format = _RD.framebuffer_get_format(_p_framebuffer)
-	
 	
 	# Compile using the default shader source defined at the end of this file
 	_p_shader = _compile_shader()
@@ -252,7 +268,15 @@ var _vertex_buffer := PackedFloat32Array([
 const _default_source_vertex = "
 		#version 450
 		
-		#extension GL_EXT_multiview : enable
+		
+		//INSERT_MACROS
+		
+		
+		#ifdef USE_MULTIVIEW
+		#extension GL_EXT_multiview : enable  // Support stereoscopic VR rendering
+		#else //USE_MULTIVIEW
+		#define gl_ViewIndex 0  // Use mono rendering only
+		#endif //USE_MULTIVIEW
 		
 		layout(location = 0) in vec3 a_Position;
 		layout(location = 1) in vec4 a_Color;
@@ -272,6 +296,10 @@ const _default_source_vertex = "
 
 const _default_source_fragment = "
 		#version 450
+		
+		
+		//INSERT_MACROS
+		
 		
 		layout(location = 2) in vec4 a_Color;
 		
