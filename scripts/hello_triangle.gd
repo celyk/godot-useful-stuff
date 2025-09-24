@@ -2,13 +2,13 @@
 class_name HelloTriangleEffect extends CompositorEffect
 
 ## This script serves as an example for rendering directly into the scene via the CompositorEffect API
+## It even shows how to support VR rendering
 ## [br][color=purple]Made by celyk[/color]
 ## @tutorial(celyk's repo): https://github.com/celyk/godot-useful-stuff
 
 # TODO
 # Review cleanup step
 # Fix hardcoded _framebuffer_format
-# Support legacy get_view_projection() behavior
 # Switch to UniformSetCacheRD and implement uniform set
 
 
