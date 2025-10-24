@@ -140,12 +140,21 @@ func _record_process():
 	var volume := _spectrum_analyzer_instance.get_magnitude_for_frequency_range(0.0, 20000, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE)
 	#print(volume, _max_volume)
 	
+	#print(volume > 0.001)
+	
 	_fft.resize(fft_size / 2)
 	
 	var bin_size := sample_rate / _fft.size()
 	
 	for i in range(0, _fft.size()-1):
-		_fft[i] = _spectrum_analyzer_instance.get_magnitude_for_frequency_range(bin_size * i, bin_size * (i+1), AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE)# / float(_fft.size())
+		var new_fft_value := 50 * _spectrum_analyzer_instance.get_magnitude_for_frequency_range(bin_size * i, bin_size * (i+1), AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_MAX)
+		
+		if new_fft_value.x > _fft[i].x:
+			_fft[i] = new_fft_value
+		else:
+			_fft[i] = lerp(_fft[i], new_fft_value, 0.2) # / float(_fft.size())
+		
+		#_fft[i] = new_fft_value
 	
 	var average := (volume.x + volume.y) / 2.0
 	if average > _max_volume.x:
@@ -153,7 +162,7 @@ func _record_process():
 		_max_volume_t_msec = Time.get_ticks_msec()
 	
 	var img := Image.create_empty(fft_size, 2, false, Image.FORMAT_RGBAF)
-	for i in range(0, _fft.size()-1):
+	for i in range(0, _fft.size()):
 		var magnitude := max(_fft[i].x, _fft[i].y)
 		
 		var v := Vector4(magnitude, 0, 0, 1)
@@ -163,6 +172,7 @@ func _record_process():
 		img.set_pixel(i, 1, col)
 	
 	#print(_fft)
+	#print(_spectrum_analyzer_instance)
 	
 	set_image(img)
 
